@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- FloatingChatButton custom attributes -->
+    <declare-styleable name="FloatingChatButton">
+        <attr name="lc_backgroundColor" format="color" />
+        <attr name="lc_iconColor" format="color" />
+        <attr name="lc_badgeColor" format="color" />
+        <attr name="lc_elevation" format="dimension" />
+        <attr name="lc_iconSize" format="dimension" />
+    </declare-styleable>
+
+    <!-- Theme style is in values/styles.xml -->
+</resources>

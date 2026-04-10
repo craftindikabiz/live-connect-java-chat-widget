@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lc_app_name">LiveConnect</string>
+    <string name="lc_chat_tab">Chat</string>
+    <string name="lc_activity_tab">Activity</string>
+    <string name="lc_header_title">Chat with us</string>
+    <string name="lc_header_subtitle">We typically reply within minutes</string>
+    <string name="lc_input_hint">Write a message\u2026</string>
+    <string name="lc_send">Send</string>
+    <string name="lc_close">Close</string>
+    <string name="lc_empty_chat_title">Start a conversation</string>
+    <string name="lc_empty_chat_description">Send us a message and we\'ll get back to you shortly.</string>
+    <string name="lc_no_agent">No Agent Assigned</string>
+    <string name="lc_agent_typing">typing\u2026</string>
+    <string name="lc_mark_resolved">Mark as resolved</string>
+    <string name="lc_read_only_notice">This conversation is closed.</string>
+    <string name="lc_rating_title">Rate your experience</string>
+    <string name="lc_rating_submit">Submit</string>
+    <string name="lc_rating_cancel">Cancel</string>
+    <string name="lc_form_name">Name</string>
+    <string name="lc_form_email">Email</string>
+    <string name="lc_form_phone">Phone (optional)</string>
+    <string name="lc_form_submit">Start Chat</string>
+    <string name="lc_form_title">Enter your details</string>
+    <string name="lc_attach_media">Attach Media</string>
+    <string name="lc_attach_document">Attach Document</string>
+    <string name="lc_uploading">Uploading\u2026</string>
+    <string name="lc_upload_failed">Upload failed</string>
+    <string name="lc_no_conversations">No conversations yet</string>
+    <string name="lc_conversation_resolved">Conversation resolved</string>
+    <string name="lc_error_init">Please initialize LiveConnectChat first</string>
+    <string name="lc_error_network">Network error. Please try again.</string>
+    <string name="lc_status_online">online</string>
+    <string name="lc_status_offline">offline</string>
+    <string name="lc_status_busy">busy</string>
+    <string name="lc_status_away">away</string>
+</resources>

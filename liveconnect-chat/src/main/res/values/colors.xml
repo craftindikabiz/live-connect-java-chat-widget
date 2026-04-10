@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="lc_primary">#FF4F46E5</color>
+    <color name="lc_primary_dark">#FF4338CA</color>
+    <color name="lc_white">#FFFFFFFF</color>
+    <color name="lc_black">#FF000000</color>
+    <color name="lc_background">#FFFFFFFF</color>
+    <color name="lc_surface">#FFF8F9FA</color>
+    <color name="lc_text_primary">#FF1A1A2E</color>
+    <color name="lc_text_secondary">#FF6B7280</color>
+    <color name="lc_text_hint">#FF9CA3AF</color>
+    <color name="lc_border">#FFE5E7EB</color>
+    <color name="lc_agent_bubble">#FFF3F4F6</color>
+    <color name="lc_system_message_bg">#FFF0F0F0</color>
+    <color name="lc_system_message_text">#FF888888</color>
+    <color name="lc_status_online">#FF22C55E</color>
+    <color name="lc_status_offline">#FF9CA3AF</color>
+    <color name="lc_status_busy">#FFEF4444</color>
+    <color name="lc_status_away">#FFF59E0B</color>
+    <color name="lc_error">#FFDC2626</color>
+    <color name="lc_badge_red">#FFEF4444</color>
+    <color name="lc_star_filled">#FFFBBF24</color>
+    <color name="lc_star_empty">#FFD1D5DB</color>
+    <color name="lc_shimmer_base">#FFE0E0E0</color>
+    <color name="lc_shimmer_highlight">#FFF5F5F5</color>
+</resources>

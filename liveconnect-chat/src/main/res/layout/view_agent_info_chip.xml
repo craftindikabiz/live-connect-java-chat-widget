@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_agent_chip"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="8dp"
+    android:layout_margin="12dp">
+
+    <!-- Avatar -->
+    <ImageView
+        android:id="@+id/agentAvatar"
+        android:layout_width="@dimen/lc_agent_avatar_size"
+        android:layout_height="@dimen/lc_agent_avatar_size"
+        android:scaleType="centerCrop"
+        android:contentDescription="Agent avatar" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginStart="10dp">
+
+        <TextView
+            android:id="@+id/agentName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/lc_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- Status dot (circle) -->
+            <View
+                android:id="@+id/statusDot"
+                android:layout_width="@dimen/lc_agent_status_dot_size"
+                android:layout_height="@dimen/lc_agent_status_dot_size"
+                android:background="@drawable/bg_status_dot" />
+
+            <TextView
+                android:id="@+id/agentStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/lc_text_secondary"
+                android:textSize="12sp"
+                android:layout_marginStart="4dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

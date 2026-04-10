@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="lc_message_max_width">280dp</dimen>
+    <dimen name="lc_message_padding_horizontal">14dp</dimen>
+    <dimen name="lc_message_padding_vertical">10dp</dimen>
+    <dimen name="lc_message_border_radius">16dp</dimen>
+    <dimen name="lc_message_timestamp_size">11sp</dimen>
+    <dimen name="lc_message_text_size">14sp</dimen>
+
+    <dimen name="lc_input_field_radius">14dp</dimen>
+    <dimen name="lc_input_row_padding_horizontal">12dp</dimen>
+    <dimen name="lc_input_row_padding_vertical">12dp</dimen>
+    <dimen name="lc_input_row_spacing">8dp</dimen>
+
+    <dimen name="lc_attach_button_size">44dp</dimen>
+    <dimen name="lc_attach_icon_size">20dp</dimen>
+    <dimen name="lc_send_button_size">44dp</dimen>
+    <dimen name="lc_send_icon_size">20dp</dimen>
+    <dimen name="lc_send_button_radius">14dp</dimen>
+
+    <dimen name="lc_header_title_size">15sp</dimen>
+    <dimen name="lc_header_subtitle_size">11sp</dimen>
+
+    <dimen name="lc_agent_avatar_size">40dp</dimen>
+    <dimen name="lc_agent_status_dot_size">8dp</dimen>
+
+    <dimen name="lc_fab_size">56dp</dimen>
+    <dimen name="lc_fab_icon_size">30dp</dimen>
+    <dimen name="lc_fab_badge_size">20dp</dimen>
+
+    <dimen name="lc_attachment_preview_radius">10dp</dimen>
+    <dimen name="lc_attachment_thumb_size">56dp</dimen>
+
+    <dimen name="lc_image_max_width">240dp</dimen>
+    <dimen name="lc_image_max_height">300dp</dimen>
+
+    <dimen name="lc_system_message_size">12sp</dimen>
+
+    <dimen name="lc_empty_chat_icon_size">64dp</dimen>
+    <dimen name="lc_empty_chat_title_size">20sp</dimen>
+    <dimen name="lc_empty_chat_desc_size">14sp</dimen>
+
+    <dimen name="lc_form_label_size">13sp</dimen>
+    <dimen name="lc_suggested_chip_text_size">13sp</dimen>
+
+    <dimen name="lc_rating_star_size">36dp</dimen>
+</resources>

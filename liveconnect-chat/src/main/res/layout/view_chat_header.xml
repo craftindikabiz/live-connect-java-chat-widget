@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="16dp"
+    android:background="@color/lc_white">
+
+    <!-- Avatar -->
+    <FrameLayout
+        android:layout_width="36dp"
+        android:layout_height="36dp">
+
+        <ImageView
+            android:id="@+id/headerAvatar"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="Widget icon" />
+    </FrameLayout>
+
+    <!-- Title + Subtitle -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="12dp">
+
+        <TextView
+            android:id="@+id/headerTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/lc_header_title"
+            android:textColor="@color/lc_text_primary"
+            android:textSize="@dimen/lc_header_title_size"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/headerSubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/lc_header_subtitle"
+            android:textColor="@color/lc_text_secondary"
+            android:textSize="@dimen/lc_header_subtitle_size"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <!-- Menu button (3-dot) -->
+    <ImageButton
+        android:id="@+id/headerMenuButton"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@android:drawable/ic_menu_more"
+        android:contentDescription="Menu"
+        android:visibility="gone"
+        android:scaleType="center" />
+
+    <!-- Close button -->
+    <ImageButton
+        android:id="@+id/headerCloseButton"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:contentDescription="@string/lc_close"
+        android:scaleType="center" />
+
+</LinearLayout>

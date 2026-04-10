@@ -1,0 +1,17 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+/liveconnect-chat/build
+/sample-app/build
+*.apk
+*.aab
+*.aar
+google-services.json
+firebase_service_account.json

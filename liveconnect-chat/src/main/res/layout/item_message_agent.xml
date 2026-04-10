@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="start"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="2dp">
+
+    <!-- Bubble -->
+    <LinearLayout
+        android:id="@+id/bubbleContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_agent_bubble"
+        android:paddingHorizontal="@dimen/lc_message_padding_horizontal"
+        android:paddingVertical="@dimen/lc_message_padding_vertical"
+        android:maxWidth="@dimen/lc_message_max_width">
+
+        <!-- Attachment image -->
+        <ImageView
+            android:id="@+id/attachmentImage"
+            android:layout_width="@dimen/lc_image_max_width"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:maxHeight="@dimen/lc_image_max_height"
+            android:scaleType="centerCrop"
+            android:visibility="gone"
+            android:contentDescription="Image attachment" />
+
+        <!-- Attachment document chip -->
+        <LinearLayout
+            android:id="@+id/attachmentDoc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone"
+            android:padding="4dp">
+
+            <TextView
+                android:id="@+id/docEmoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/docName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/lc_text_primary"
+                android:textSize="12sp"
+                android:layout_marginStart="4dp"
+                android:maxLines="1"
+                android:ellipsize="middle" />
+        </LinearLayout>
+
+        <!-- Message text -->
+        <TextView
+            android:id="@+id/messageText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/lc_text_primary"
+            android:textSize="@dimen/lc_message_text_size"
+            android:lineSpacingExtra="2dp" />
+
+        <!-- Timestamp -->
+        <TextView
+            android:id="@+id/timestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/lc_text_hint"
+            android:textSize="@dimen/lc_message_timestamp_size"
+            android:layout_gravity="end"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
+</LinearLayout>

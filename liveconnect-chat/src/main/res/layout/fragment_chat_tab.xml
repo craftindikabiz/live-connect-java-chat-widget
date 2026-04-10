@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/lc_background">
+
+    <!-- Agent info chip -->
+    <FrameLayout
+        android:id="@+id/agentChipContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+
+    <!-- Message list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/messageRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp" />
+
+    <!-- Empty state -->
+    <include
+        android:id="@+id/emptyChatState"
+        layout="@layout/view_empty_chat"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:visibility="gone" />
+
+    <!-- Suggested messages -->
+    <FrameLayout
+        android:id="@+id/suggestedMessagesContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+
+    <!-- Read-only notice -->
+    <LinearLayout
+        android:id="@+id/readOnlyNotice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="12dp"
+        android:background="@drawable/bg_read_only_notice"
+        android:layout_margin="12dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@android:drawable/ic_lock_lock"
+            android:contentDescription="Locked" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/lc_read_only_notice"
+            android:textSize="13sp"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+    <!-- Attachment preview (above input) -->
+    <FrameLayout
+        android:id="@+id/attachmentPreviewContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+
+    <!-- Message input -->
+    <include
+        android:id="@+id/messageInput"
+        layout="@layout/view_message_input" />
+
+</LinearLayout>

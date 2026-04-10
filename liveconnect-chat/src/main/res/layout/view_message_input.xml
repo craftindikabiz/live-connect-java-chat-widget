@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="@dimen/lc_input_row_padding_horizontal"
+    android:paddingVertical="@dimen/lc_input_row_padding_vertical"
+    android:background="@color/lc_white">
+
+    <!-- Attach button -->
+    <ImageButton
+        android:id="@+id/attachButton"
+        android:layout_width="@dimen/lc_attach_button_size"
+        android:layout_height="@dimen/lc_attach_button_size"
+        android:background="@drawable/bg_attach_button"
+        android:src="@android:drawable/ic_menu_add"
+        android:scaleType="center"
+        android:contentDescription="Attach file" />
+
+    <!-- Text input -->
+    <EditText
+        android:id="@+id/inputEditText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginHorizontal="@dimen/lc_input_row_spacing"
+        android:background="@drawable/bg_input_field"
+        android:hint="@string/lc_input_hint"
+        android:textColorHint="@color/lc_text_hint"
+        android:textColor="@color/lc_text_primary"
+        android:textSize="@dimen/lc_message_text_size"
+        android:minLines="1"
+        android:maxLines="5"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="10dp"
+        android:inputType="textMultiLine|textCapSentences"
+        android:importantForAutofill="no" />
+
+    <!-- Send button -->
+    <ImageButton
+        android:id="@+id/sendButton"
+        android:layout_width="@dimen/lc_send_button_size"
+        android:layout_height="@dimen/lc_send_button_size"
+        android:background="@drawable/bg_send_button"
+        android:src="@android:drawable/ic_menu_send"
+        android:scaleType="center"
+        android:contentDescription="@string/lc_send"
+        android:enabled="false" />
+
+</LinearLayout>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="32dp">
+
+    <!-- Icon circle -->
+    <FrameLayout
+        android:layout_width="@dimen/lc_empty_chat_icon_size"
+        android:layout_height="@dimen/lc_empty_chat_icon_size"
+        android:background="@drawable/bg_empty_chat_icon">
+
+        <ImageView
+            android:id="@+id/emptyIcon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:src="@android:drawable/sym_action_chat"
+            android:contentDescription="Chat" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/emptyTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/lc_empty_chat_title"
+        android:textSize="@dimen/lc_empty_chat_title_size"
+        android:textStyle="bold"
+        android:textColor="@color/lc_text_primary"
+        android:layout_marginTop="16dp" />
+
+    <TextView
+        android:id="@+id/emptyDescription"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/lc_empty_chat_description"
+        android:textSize="@dimen/lc_empty_chat_desc_size"
+        android:textColor="@color/lc_text_secondary"
+        android:gravity="center"
+        android:layout_marginTop="8dp" />
+
+</LinearLayout>
