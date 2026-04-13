@@ -81,18 +81,23 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
-                from(components["release"])
-                // JitPack expects the coordinate consumers type: com.github.<user>:<repo>:<tag>
-                // On JitPack, VERSION_NAME is passed as a -P flag equal to the tag being built.
-                // Locally, publishToMavenLocal falls back to v1.0.0 for testing.
-                groupId = "com.github.craftindikabiz"
-                artifactId = "live-connect-java-chat-widget"
-                version = (project.findProperty("VERSION_NAME") as String?) ?: "v1.0.0"
-            }
+publishing {
+    publications {
+        register<MavenPublication>("release") {
+            // AGP wires the "release" component automatically because of
+            // android.publishing.singleVariant("release") above — no afterEvaluate needed.
+            afterEvaluate { from(components["release"]) }
+
+            // JitPack consumers import: com.github.<user>:<repo>:<tag>
+            // Version resolution order:
+            //  1. -PVERSION_NAME=<tag>   (what JitPack passes on real builds)
+            //  2. $VERSION_NAME env var  (alternative JitPack convention)
+            //  3. "v1.0.0" fallback      (local publishToMavenLocal testing)
+            groupId = "com.github.craftindikabiz"
+            artifactId = "live-connect-java-chat-widget"
+            version = (project.findProperty("VERSION_NAME") as String?)
+                ?: System.getenv("VERSION_NAME")
+                ?: "v1.0.0"
         }
     }
 }
