@@ -99,6 +99,14 @@ dependencies {
 ./gradlew sync
 ```
 
+> **Warning — JitPack build cache.** JitPack caches built artifacts per commit SHA. If a build was already triggered on an older commit of a tag that has since been moved, subsequent installs may receive a stale artifact. To force a rebuild, open the version page in a browser and click **Get it** on the affected version:
+>
+> ```
+> https://jitpack.io/#craftindikabiz/live-connect-java-chat-widget/v1.0.0
+> ```
+>
+> JitPack will re-resolve the tag to the latest SHA and rebuild. If you need to switch to a new commit without moving the tag, pin to a fresh version instead.
+
 ---
 
 ## Package Initialization
