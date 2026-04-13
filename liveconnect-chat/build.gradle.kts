@@ -86,9 +86,12 @@ afterEvaluate {
         publications {
             create<MavenPublication>("release") {
                 from(components["release"])
-                groupId = "com.techindika"
-                artifactId = "liveconnect-chat"
-                version = "1.0.0"
+                // JitPack expects the coordinate consumers type: com.github.<user>:<repo>:<tag>
+                // On JitPack, VERSION_NAME is passed as a -P flag equal to the tag being built.
+                // Locally, publishToMavenLocal falls back to v1.0.0 for testing.
+                groupId = "com.github.craftindikabiz"
+                artifactId = "live-connect-java-chat-widget"
+                version = (project.findProperty("VERSION_NAME") as String?) ?: "v1.0.0"
             }
         }
     }

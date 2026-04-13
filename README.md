@@ -70,8 +70,6 @@ dependencies {
 
 > **Why?** The library uses `ThreadLocal.withInitial` and other Java 8+ APIs that need desugaring on `minSdk < 26`. Without this your app will crash on API 21-25 devices.
 
-> **Groovy users:** swap `kotlin { ... }` for `groovy { ... }` equivalents; everything else is identical.
-
 ---
 
 ## Quick start
@@ -129,9 +127,10 @@ No Java code required beyond `LiveConnectChat.init(...)` in `onCreate`.
 
 ## Theming
 
-Quick: single-colour theme auto-generates the full palette.
+Quick: single-colour theme auto-generates the full palette. Pass it as the fourth argument to `init`:
 
 ```java
+VisitorProfile visitor = new VisitorProfile("John Doe", "john@example.com");
 LiveConnectTheme theme = LiveConnectTheme.fromPrimary(Color.parseColor("#4F46E5"));
 LiveConnectChat.init(this, "your-widget-key", visitor, theme, null);
 ```
