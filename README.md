@@ -88,7 +88,7 @@ In your app-level `build.gradle`:
 
 ```groovy
 dependencies {
-    implementation 'com.github.craftindikabiz:live-connect-java-chat-widget:main-SNAPSHOT'
+    implementation 'com.github.craftindikabiz:live-connect-java-chat-widget:v1.0.0'
     implementation 'com.google.firebase:firebase-messaging:23.4.0'
 }
 ```
