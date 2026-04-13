@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import com.techindika.liveconnect.model.*
+import com.techindika.liveconnect.util.optStringOrNull
 import org.json.JSONObject
 import java.util.Date
 import java.util.concurrent.ConcurrentHashMap
@@ -126,7 +127,7 @@ internal class SocketEventManager(private val socketService: SocketService) {
     private fun handleTicketResolved(args: Array<Any>) {
         val json = parseJson(args) ?: return
         val ticketId = json.optString("ticketId", "")
-        val resolvedBy = json.optString("resolvedBy", null)
+        val resolvedBy = json.optStringOrNull("resolvedBy")
         dispatch { onTicketResolved?.invoke(TicketResolvedEvent(ticketId, resolvedBy)) }
     }
 

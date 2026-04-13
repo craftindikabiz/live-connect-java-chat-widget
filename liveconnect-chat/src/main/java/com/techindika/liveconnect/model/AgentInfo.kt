@@ -1,5 +1,6 @@
 package com.techindika.liveconnect.model
 
+import com.techindika.liveconnect.util.optStringOrNull
 import org.json.JSONObject
 
 /**
@@ -23,7 +24,7 @@ data class AgentInfo(
         fun fromJson(json: JSONObject): AgentInfo = AgentInfo(
             id = json.optString("id", json.optString("_id", "")),
             name = json.optString("name", "Agent"),
-            photo = json.optString("photo", null),
+            photo = json.optStringOrNull("photo"),
             status = AgentStatus.fromString(json.optString("status", "online"))
         )
     }

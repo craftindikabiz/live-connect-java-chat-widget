@@ -2,6 +2,7 @@ package com.techindika.liveconnect.model
 
 import android.graphics.Color
 import androidx.annotation.ColorInt
+import com.techindika.liveconnect.util.optStringOrNull
 import org.json.JSONObject
 
 /**
@@ -52,8 +53,8 @@ data class WidgetConfig(
                 iconUrl = json.optString("iconUrl", ""),
                 widgetKey = json.optString("widgetKey", json.optString("key", "")),
                 suggestedMessages = suggestions,
-                createdAt = json.optString("createdAt", null),
-                updatedAt = json.optString("updatedAt", null)
+                createdAt = json.optStringOrNull("createdAt"),
+                updatedAt = json.optStringOrNull("updatedAt")
             )
         }
     }

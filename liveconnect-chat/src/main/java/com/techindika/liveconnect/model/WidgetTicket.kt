@@ -1,5 +1,6 @@
 package com.techindika.liveconnect.model
 
+import com.techindika.liveconnect.util.optStringOrNull
 import org.json.JSONObject
 
 /**
@@ -31,26 +32,26 @@ data class WidgetTicket(
             val agentId = when {
                 json.optJSONObject("agentId") != null ->
                     json.optJSONObject("agentId")?.optString("_id", "")
-                else -> json.optString("agentId", null)
+                else -> json.optStringOrNull("agentId")
             }
             return WidgetTicket(
                 id = json.optString("id", json.optString("_id", "")),
-                widgetId = json.optString("widgetId", null),
-                visitorId = json.optString("visitorId", null),
+                widgetId = json.optStringOrNull("widgetId"),
+                visitorId = json.optStringOrNull("visitorId"),
                 agentId = agentId,
-                agentName = json.optString("agentName", null),
-                agentPhoto = json.optString("agentPhoto", null),
-                agentStatus = json.optString("agentStatus", null),
-                status = json.optString("status", null),
-                firstMessage = json.optString("firstMessage", null),
-                lastMessage = json.optString("lastMessage", null),
-                lastMessageAt = json.optString("lastMessageAt", null),
-                agentAssignedAt = json.optString("agentAssignedAt", null),
-                agentLastReplyAt = json.optString("agentLastReplyAt", null),
-                resolvedAt = json.optString("resolvedAt", null),
-                resolvedBy = json.optString("resolvedBy", null),
-                createdAt = json.optString("createdAt", null),
-                updatedAt = json.optString("updatedAt", null)
+                agentName = json.optStringOrNull("agentName"),
+                agentPhoto = json.optStringOrNull("agentPhoto"),
+                agentStatus = json.optStringOrNull("agentStatus"),
+                status = json.optStringOrNull("status"),
+                firstMessage = json.optStringOrNull("firstMessage"),
+                lastMessage = json.optStringOrNull("lastMessage"),
+                lastMessageAt = json.optStringOrNull("lastMessageAt"),
+                agentAssignedAt = json.optStringOrNull("agentAssignedAt"),
+                agentLastReplyAt = json.optStringOrNull("agentLastReplyAt"),
+                resolvedAt = json.optStringOrNull("resolvedAt"),
+                resolvedBy = json.optStringOrNull("resolvedBy"),
+                createdAt = json.optStringOrNull("createdAt"),
+                updatedAt = json.optStringOrNull("updatedAt")
             )
         }
     }

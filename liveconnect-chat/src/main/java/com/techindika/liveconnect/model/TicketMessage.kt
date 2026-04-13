@@ -1,5 +1,6 @@
 package com.techindika.liveconnect.model
 
+import com.techindika.liveconnect.util.optStringOrNull
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -37,13 +38,13 @@ data class TicketMessage(
                 id = json.optString("id", json.optString("_id", "")),
                 ticketId = json.optString("ticketId", ""),
                 senderType = json.optString("senderType", "system"),
-                senderId = json.optString("senderId", null),
+                senderId = json.optStringOrNull("senderId"),
                 type = json.optString("type", "text"),
-                content = json.optString("content", null),
-                fileUrl = json.optString("fileUrl", null),
-                fileName = json.optString("fileName", null),
-                fileType = json.optString("fileType", null),
-                status = json.optString("status", null),
+                content = json.optStringOrNull("content"),
+                fileUrl = json.optStringOrNull("fileUrl"),
+                fileName = json.optStringOrNull("fileName"),
+                fileType = json.optStringOrNull("fileType"),
+                status = json.optStringOrNull("status"),
                 createdAt = parseDate(json.optString("createdAt", "")) ?: now,
                 updatedAt = parseDate(json.optString("updatedAt", "")) ?: now
             )
