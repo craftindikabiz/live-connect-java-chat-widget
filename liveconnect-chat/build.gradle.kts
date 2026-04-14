@@ -43,6 +43,12 @@ android {
             withJavadocJar()
         }
     }
+
+    // Use real Android resources / SharedPreferences in JVM unit tests via Robolectric.
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -81,6 +87,17 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // ── Unit test dependencies (testImplementation = NOT bundled into the AAR) ──
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("org.robolectric:robolectric:4.11.1")
+    testImplementation("androidx.test:core:1.5.0")
+    testImplementation("androidx.test.ext:junit:1.1.5")
+    // Real org.json — Android's stub jar is on the test classpath by default
+    // and returns null/0/false for everything, breaking JSONObject in unit tests.
+    testImplementation("org.json:json:20231013")
 }
 
 publishing {
