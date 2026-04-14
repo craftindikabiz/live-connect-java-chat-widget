@@ -177,13 +177,47 @@ class ChatTabFragment : Fragment() {
                     withContext(Dispatchers.Main) {
                         conversationManager.initializeFromTickets(result.tickets)
 
-                        // Resume stored ticket if available
-                        val ticketToResume = storedTicketId
-                            ?: result.tickets.firstOrNull { it.status == "open" }?.id
+                        // ── Two-tier resumption strategy (matches Flutter) ──
+                        var ticketToResumeId: String? = null
 
-                        if (ticketToResume != null) {
-                            loadMessagesForTicket(ticketToResume)
-                            connectSocketToResume(ticketToResume)
+                        // Tier 1: try the stored ticket id, but only if it's still OPEN.
+                        // If the agent resolved it while the app was offline, we drop it
+                        // and fall through to Tier 2.
+                        if (!storedTicketId.isNullOrEmpty()) {
+                            val stored = result.tickets.firstOrNull { it.id == storedTicketId }
+                            if (stored != null && stored.status == "open") {
+                                ticketToResumeId = stored.id
+                                TicketStorage.saveTicketStatus(
+                                    context, widgetKey, visitorId, TicketStorage.STATUS_OPEN
+                                )
+                            } else if (stored != null) {
+                                // Stored ticket was resolved in the background — clear it.
+                                Log.d(TAG, "Stored ticket $storedTicketId was resolved in background")
+                                TicketStorage.clearActiveTicketId(context, widgetKey, visitorId)
+                                TicketStorage.saveTicketStatus(
+                                    context, widgetKey, visitorId, TicketStorage.STATUS_RESOLVED
+                                )
+                            }
+                        }
+
+                        // Tier 2: fall back to the first open ticket from the API list
+                        // (handles app uninstall/reinstall — fresh slate, no stored id).
+                        if (ticketToResumeId == null) {
+                            val firstOpen = result.tickets.firstOrNull { it.status == "open" }
+                            if (firstOpen != null) {
+                                ticketToResumeId = firstOpen.id
+                                TicketStorage.saveActiveTicketId(
+                                    context, widgetKey, visitorId, firstOpen.id
+                                )
+                                TicketStorage.saveTicketStatus(
+                                    context, widgetKey, visitorId, TicketStorage.STATUS_OPEN
+                                )
+                            }
+                        }
+
+                        if (ticketToResumeId != null) {
+                            loadMessagesForTicket(ticketToResumeId)
+                            connectSocketToResume(ticketToResumeId)
                         }
                     }
                 } else {
@@ -284,12 +318,35 @@ class ChatTabFragment : Fragment() {
 
             conversationManager.setTicketIdForActiveThread(event.ticketId)
             TicketStorage.saveActiveTicketId(context, widgetKey, visitorId, event.ticketId)
+            // Save status as open so the next session knows the ticket is still active.
+            TicketStorage.saveTicketStatus(
+                context, widgetKey, visitorId, TicketStorage.STATUS_OPEN
+            )
             event.agent?.let { currentAgent = it }
 
             // Emit delivered status
             socketService.emit(SocketService.EMIT_MESSAGE_DELIVERED, JSONObject().apply {
                 put("ticketId", event.ticketId)
             })
+        }
+
+        // Agent reassigned during an active session — update the AgentInfoChip.
+        // Mirrors Flutter's _handleTicketAssigned in SocketEventManager.
+        socketEventManager.onTicketAssigned = { agent ->
+            currentAgent = agent
+        }
+
+        // Show a toast when the socket drops; the underlying socket.io client
+        // handles reconnection attempts itself, so we only need to surface the state.
+        socketEventManager.onSocketDisconnect = { _ ->
+            isSocketConnected = false
+            if (isAdded) {
+                Toast.makeText(
+                    requireContext(),
+                    "Connection lost. Attempting to reconnect…",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
 
         socketEventManager.onTicketResumed = handler@{ event ->
@@ -306,7 +363,12 @@ class ChatTabFragment : Fragment() {
             val context = LiveConnectChat.appContext ?: return@handler
 
             conversationManager.markActiveThreadAsResolved()
+            // clearActiveTicketId() also clears the status key — see TicketStorage.
             TicketStorage.clearActiveTicketId(context, widgetKey, visitorId)
+            // Persist the resolved status so the next launch knows not to resume.
+            TicketStorage.saveTicketStatus(
+                context, widgetKey, visitorId, TicketStorage.STATUS_RESOLVED
+            )
             socketService.disconnect()
             isSocketConnected = false
             currentAgent = null
@@ -337,7 +399,13 @@ class ChatTabFragment : Fragment() {
         }
 
         socketEventManager.onAgentTyping = { event ->
-            // Could show typing indicator
+            // Only show the typing bubble if the event is for the currently active
+            // ticket — otherwise typing on an old/closed conversation would leak
+            // into the visible chat. Mirrors Flutter's chat_screen_tabbed.dart.
+            if (event.ticketId == conversationManager.activeTicketId) {
+                // Surface to UI once a typing-bubble view is wired up.
+                // For now the scoping itself is the bug fix.
+            }
         }
 
         socketEventManager.onAgentChanged = { event ->

@@ -36,6 +36,12 @@ internal class SocketEventManager(private val socketService: SocketService) {
     var onRatePrompt: ((RatePromptEvent) -> Unit)? = null
     var onError: ((String) -> Unit)? = null
 
+    /** Fires when the server assigns/reassigns an agent on an active ticket. */
+    var onTicketAssigned: ((AgentInfo) -> Unit)? = null
+
+    /** Fires when the underlying socket disconnects, with the disconnect reason. */
+    var onSocketDisconnect: ((String) -> Unit)? = null
+
     /** Register all socket event listeners. Call once. */
     fun registerListeners() {
         if (listenersRegistered) return
@@ -77,6 +83,22 @@ internal class SocketEventManager(private val socketService: SocketService) {
         socketService.on(SocketService.EVENT_BROADCAST_MESSAGE) { args ->
             handleBroadcastMessage(args)
         }
+        socketService.on(SocketService.EVENT_TICKET_ASSIGNED) { args ->
+            handleTicketAssigned(args)
+        }
+
+        // Lifecycle hooks — bridge SocketService's connect/disconnect to typed callbacks
+        socketService.onDisconnect = { reason ->
+            Log.d(TAG, "Socket disconnected: $reason")
+            dispatch { onSocketDisconnect?.invoke(reason) }
+        }
+    }
+
+    private fun handleTicketAssigned(args: Array<Any>) {
+        val json = parseJson(args) ?: return
+        val agentJson = json.optJSONObject("agent") ?: return
+        val agent = AgentInfo.fromJson(agentJson)
+        dispatch { onTicketAssigned?.invoke(agent) }
     }
 
     /** Track a message sent optimistically (before server confirms). */

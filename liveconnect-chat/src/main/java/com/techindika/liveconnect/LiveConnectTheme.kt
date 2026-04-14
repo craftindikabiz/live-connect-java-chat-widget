@@ -106,9 +106,22 @@ class LiveConnectTheme private constructor(builder: Builder) {
     val emptyChatTitleFontSize: Float = builder.emptyChatTitleFontSize
     val emptyChatDescriptionFontSize: Float = builder.emptyChatDescriptionFontSize
 
+    // ── Generic text shades (used by activity cards, hint text, etc.) ──
+    @ColorInt val secondaryTextColor: Int = builder.secondaryTextColor
+    @ColorInt val tertiaryTextColor: Int = builder.tertiaryTextColor
+
     // ── Read-Only Notice ──
     @ColorInt val readOnlyNoticeBackgroundColor: Int = builder.readOnlyNoticeBackgroundColor
     @ColorInt val readOnlyNoticeTextColor: Int = builder.readOnlyNoticeTextColor
+    /** Optional override for the read-only banner text. Empty falls back to default. */
+    val readOnlyMessagesText: String = builder.readOnlyMessagesText
+
+    // ── Broadcast / system event chip ──
+    @ColorInt val broadcastMessageBackgroundColor: Int = builder.broadcastMessageBackgroundColor
+
+    // ── Rating Dialog ──
+    @ColorInt val ratingDialogBackgroundColor: Int = builder.ratingDialogBackgroundColor
+    @ColorInt val ratingDialogTitleColor: Int = builder.ratingDialogTitleColor
 
     // ── Error ──
     @ColorInt val errorMessageColor: Int = builder.errorMessageColor
@@ -177,8 +190,14 @@ class LiveConnectTheme private constructor(builder: Builder) {
         b.emptyChatDescriptionColor = emptyChatDescriptionColor
         b.emptyChatTitleFontSize = emptyChatTitleFontSize
         b.emptyChatDescriptionFontSize = emptyChatDescriptionFontSize
+        b.secondaryTextColor = secondaryTextColor
+        b.tertiaryTextColor = tertiaryTextColor
         b.readOnlyNoticeBackgroundColor = readOnlyNoticeBackgroundColor
         b.readOnlyNoticeTextColor = readOnlyNoticeTextColor
+        b.readOnlyMessagesText = readOnlyMessagesText
+        b.broadcastMessageBackgroundColor = broadcastMessageBackgroundColor
+        b.ratingDialogBackgroundColor = ratingDialogBackgroundColor
+        b.ratingDialogTitleColor = ratingDialogTitleColor
         b.errorMessageColor = errorMessageColor
     }
 
@@ -258,8 +277,17 @@ class LiveConnectTheme private constructor(builder: Builder) {
         var emptyChatTitleFontSize: Float = 20f
         var emptyChatDescriptionFontSize: Float = 14f
 
+        @ColorInt var secondaryTextColor: Int = 0xFF64748B.toInt()
+        @ColorInt var tertiaryTextColor: Int = 0xFF0F172A.toInt()
+
         @ColorInt var readOnlyNoticeBackgroundColor: Int = withAlpha(DEFAULT_PRIMARY, 0.08f)
         @ColorInt var readOnlyNoticeTextColor: Int = DEFAULT_PRIMARY
+        var readOnlyMessagesText: String = ""
+
+        @ColorInt var broadcastMessageBackgroundColor: Int = 0xFFF3E2E2.toInt()
+
+        @ColorInt var ratingDialogBackgroundColor: Int = Color.WHITE
+        @ColorInt var ratingDialogTitleColor: Int = 0xFF111827.toInt()
 
         @ColorInt var errorMessageColor: Int = 0xFFDC2626.toInt()
 
@@ -311,6 +339,14 @@ class LiveConnectTheme private constructor(builder: Builder) {
             readOnlyNoticeBackgroundColor = withAlpha(primary, 0.08f)
             readOnlyNoticeTextColor = primary
         }.build()
+
+        /** Darken a color by a fraction (0.0-1.0). Public so [LiveConnectChat.setTheme] can reuse. */
+        @JvmStatic
+        fun darkenColor(@ColorInt color: Int, fraction: Float): Int = darken(color, fraction)
+
+        /** Apply alpha to a color (0.0-1.0). Public so [LiveConnectChat.setTheme] can reuse. */
+        @JvmStatic
+        fun withAlphaColor(@ColorInt color: Int, alpha: Float): Int = withAlpha(color, alpha)
 
         /** Darken a color by a fraction (0.0-1.0). */
         private fun darken(@ColorInt color: Int, fraction: Float): Int {

@@ -7,6 +7,8 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.TextView
+import com.techindika.liveconnect.socket.SocketService
+import org.json.JSONObject
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -137,6 +139,18 @@ class ChatActivity : AppCompatActivity() {
     private fun updateMenuButtonVisibility(position: Int) {
         val showMenu = position == 0 && viewModel.conversationManager.activeTicketId != null
         menuButton.visibility = if (showMenu) View.VISIBLE else View.GONE
+
+        // Mirrors Flutter's _onTabChanged: emit message:read whenever the chat tab
+        // becomes active so the agent dashboard updates the visitor's read state.
+        if (position == 0) {
+            val ticketId = viewModel.conversationManager.activeTicketId
+            if (ticketId != null && viewModel.socketService.isConnected) {
+                viewModel.socketService.emit(
+                    SocketService.EMIT_MESSAGE_READ,
+                    JSONObject().apply { put("ticketId", ticketId) }
+                )
+            }
+        }
     }
 
     private fun showHeaderMenu(anchor: View) {

@@ -187,6 +187,7 @@ internal class SocketService private constructor() {
         const val EVENT_AGENT_REASSIGNED = "agent:reassigned"
         const val EVENT_AGENT_STATUS = "agent:status"
         const val EVENT_BROADCAST_MESSAGE = "broadcast:message"
+        const val EVENT_TICKET_ASSIGNED = "ticket:assigned"
 
         // Socket event names (outgoing)
         const val EMIT_MESSAGE_SEND = "message:send"

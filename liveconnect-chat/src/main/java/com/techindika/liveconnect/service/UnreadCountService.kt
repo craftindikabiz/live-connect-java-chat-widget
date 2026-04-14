@@ -27,6 +27,10 @@ internal object UnreadCountService {
     @JvmStatic
     fun getTotalUnreadCount(): Int = counts.values.sum()
 
+    /** Get the unread count for a specific ticket (0 if none). */
+    @JvmStatic
+    fun getUnreadCount(ticketId: String): Int = counts[ticketId] ?: 0
+
     /** Clear counts for a specific ticket. */
     @JvmStatic
     fun clearForTicket(ticketId: String) {

@@ -137,6 +137,32 @@ internal class ConversationManager {
         _activeThreadId.postValue(threadId)
     }
 
+    /**
+     * Update threads from a fresh API ticket list while PRESERVING the current
+     * active thread. Used after marking a conversation as resolved to refresh
+     * the Activity tab without losing the new welcome-message thread the user
+     * is now sitting on. Mirrors Flutter's `updateThreadsFromTickets`.
+     */
+    fun updateThreadsFromTickets(tickets: List<WidgetTicket>) {
+        val currentActiveId = _activeThreadId.value
+        val currentActiveThread = _threads.value?.firstOrNull { it.id == currentActiveId }
+
+        // Rebuild threads from the API list (this regenerates threadToTicket too)
+        val newThreads = tickets.map { convertTicketToThread(it) }
+
+        if (currentActiveId != null && currentActiveThread != null) {
+            // Only prepend the existing active thread if it isn't already from the API
+            // (i.e. it's a fresh client-side thread the API doesn't know about yet).
+            val isClientSide = newThreads.none { it.id == currentActiveId }
+            if (isClientSide) {
+                _threads.postValue(listOf(currentActiveThread) + newThreads)
+                _activeThreadId.postValue(currentActiveId)
+                return
+            }
+        }
+        _threads.postValue(newThreads)
+    }
+
     /** Get ticket ID for a thread. */
     fun getTicketIdForThread(threadId: String): String? = threadToTicket[threadId]
 

@@ -1,5 +1,7 @@
 package com.techindika.liveconnect.ui.adapter
 
+import android.content.Intent
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -115,9 +117,15 @@ internal class MessageAdapter(
                 attachmentDoc.visibility = View.VISIBLE
                 docEmoji.text = attachment.typeEmoji
                 docName.text = attachment.filename
+                // Open the document in the user's default handler on tap.
+                // Mirrors Flutter's url_launcher path in message_bubble.dart.
+                attachmentDoc.setOnClickListener { v ->
+                    openAttachment(v, attachment.filePath)
+                }
             } else {
                 attachmentImage.visibility = View.GONE
                 attachmentDoc.visibility = View.GONE
+                attachmentDoc.setOnClickListener(null)
             }
 
             // Theme bubble color
@@ -154,9 +162,13 @@ internal class MessageAdapter(
                 attachmentDoc.visibility = View.VISIBLE
                 docEmoji.text = attachment.typeEmoji
                 docName.text = attachment.filename
+                attachmentDoc.setOnClickListener { v ->
+                    openAttachment(v, attachment.filePath)
+                }
             } else {
                 attachmentImage.visibility = View.GONE
                 attachmentDoc.visibility = View.GONE
+                attachmentDoc.setOnClickListener(null)
             }
 
             bubbleContainer.background?.setTint(theme.agentBubbleColor)
@@ -168,12 +180,36 @@ internal class MessageAdapter(
 
         fun bind(message: Message, theme: LiveConnectTheme) {
             systemText.text = message.text
-            systemText.setTextColor(theme.systemMessageTextColor)
-            systemText.background?.setTint(theme.systemMessageBackgroundColor)
+            // Broadcast events (e.g. "Chat reassigned to John") use a distinct colour
+            // so they don't visually compete with regular system notices.
+            // Mirrors Flutter's _buildBroadcastChip vs _buildSystemMessage.
+            if (message.sender == MessageSender.BROADCAST) {
+                systemText.setTextColor(theme.agentTextColor)
+                systemText.background?.setTint(theme.broadcastMessageBackgroundColor)
+            } else {
+                systemText.setTextColor(theme.systemMessageTextColor)
+                systemText.background?.setTint(theme.systemMessageBackgroundColor)
+            }
         }
     }
 
     companion object {
+        /**
+         * Open a remote attachment URL in the OS default handler (browser, PDF
+         * viewer, etc.). Mirrors Flutter's `url_launcher` behaviour. No-op on
+         * empty url or activity-not-found — failure is silent rather than crashy.
+         */
+        private fun openAttachment(anchor: View, url: String) {
+            if (url.isEmpty()) return
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                anchor.context.startActivity(intent)
+            } catch (_: Exception) {
+                // No matching activity / malformed url — ignore silently.
+            }
+        }
+
         private const val VIEW_TYPE_VISITOR = 0
         private const val VIEW_TYPE_AGENT = 1
         private const val VIEW_TYPE_SYSTEM = 2

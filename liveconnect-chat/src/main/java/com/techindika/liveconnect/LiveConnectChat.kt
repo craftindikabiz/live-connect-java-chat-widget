@@ -255,10 +255,40 @@ object LiveConnectChat {
 
     /**
      * Override the theme at runtime.
+     *
+     * Auto-sync rule: if the developer changed `primaryColor` but left
+     * `visitorBubbleColor` unchanged (i.e. it still equals the OLD primary),
+     * we propagate the new primary into all 14 primary-dependent colour
+     * fields. Mirrors Flutter's `setTheme` in `liveconnect_chat.dart`.
      */
     @JvmStatic
     fun setTheme(theme: LiveConnectTheme) {
-        _theme = theme
+        val oldPrimary = _theme.primaryColor
+        val newPrimary = theme.primaryColor
+        val primaryChanged = newPrimary != oldPrimary
+        val visitorBubbleStillTracksOldPrimary = theme.visitorBubbleColor == oldPrimary
+
+        _theme = if (primaryChanged && visitorBubbleStillTracksOldPrimary) {
+            theme.toBuilder().apply {
+                visitorBubbleColor = newPrimary
+                sendButtonStartColor = newPrimary
+                sendButtonEndColor = LiveConnectTheme.darkenColor(newPrimary, 0.15f)
+                attachButtonIconColor = newPrimary
+                emptyChatIconColor = newPrimary
+                tabLabelColor = newPrimary
+                tabIndicatorColor = newPrimary
+                formButtonColor = newPrimary
+                formFieldFocusBorderColor = newPrimary
+                activityTitleColor = newPrimary
+                activityCardBorderColor = LiveConnectTheme.withAlphaColor(newPrimary, 0.20f)
+                inputFieldFocusBorderColor = newPrimary
+                readOnlyNoticeBackgroundColor = LiveConnectTheme.withAlphaColor(newPrimary, 0.08f)
+                readOnlyNoticeTextColor = newPrimary
+                headerAvatarBackgroundColor = newPrimary
+            }.build()
+        } else {
+            theme
+        }
         _themeVersion.postValue(themeCounter.incrementAndGet())
     }
 
@@ -300,6 +330,28 @@ object LiveConnectChat {
             true
         } catch (_: Exception) {
             false
+        }
+    }
+
+    /**
+     * Update the stored visitor profile and re-register it with the server.
+     * Public counterpart to [registerVisitorProfile] — callable from app code
+     * after [init] to update the visitor's name/email/phone.
+     *
+     * Mirrors Flutter's `LiveConnectChat.updateVisitorProfile`.
+     *
+     * @param updatedProfile new visitor details
+     * @param callback fires with `true` on success, `false` on failure
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun updateVisitorProfile(
+        updatedProfile: VisitorProfile,
+        callback: ((Boolean) -> Unit)? = null
+    ) {
+        scope.launch {
+            val ok = registerVisitorProfile(updatedProfile)
+            callback?.invoke(ok)
         }
     }
 
