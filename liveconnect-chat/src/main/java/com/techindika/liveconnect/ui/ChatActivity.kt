@@ -5,9 +5,14 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
 import com.google.android.material.tabs.TabLayout
@@ -21,15 +26,22 @@ import com.techindika.liveconnect.R
  */
 class ChatActivity : AppCompatActivity() {
 
+    private val viewModel: ChatViewModel by viewModels()
+
     private lateinit var viewPager: ViewPager2
     private lateinit var tabLayout: TabLayout
+    private lateinit var menuButton: ImageButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Slide-up enter animation
-        applyEnterTransition()
+        // Edge-to-edge so the activity draws under status + nav bars; we apply
+        // the system-bar + IME insets as padding on the root view ourselves so
+        // the header is never under the clock and the input is never under the
+        // gesture indicator or keyboard.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
+        applyEnterTransition()
         setContentView(R.layout.activity_chat)
 
         val widgetKey = intent.getStringExtra(EXTRA_WIDGET_KEY) ?: run {
@@ -57,16 +69,25 @@ class ChatActivity : AppCompatActivity() {
     private fun setupUI(showCloseButton: Boolean) {
         val theme = LiveConnectChat.currentTheme
 
+        // ── Apply system-bar + IME insets as padding on the root layout ──
+        // This handles status bar (top), nav/gesture bar (bottom), AND keyboard.
+        val root = findViewById<View>(R.id.activityChatRoot)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime()
+            )
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
+        }
+
         // Header
         val headerTitle = findViewById<TextView>(R.id.headerTitle)
-        val headerSubtitle = findViewById<TextView>(R.id.headerSubtitle)
         val headerAvatar = findViewById<ImageView>(R.id.headerAvatar)
         val closeButton = findViewById<ImageButton>(R.id.headerCloseButton)
-        val menuButton = findViewById<ImageButton>(R.id.headerMenuButton)
+        menuButton = findViewById(R.id.headerMenuButton)
 
         headerTitle.text = theme.headerTitle
         headerTitle.setTextColor(theme.headerTitleColor)
-        headerSubtitle.setTextColor(theme.headerSubtitleColor)
 
         // Load icon
         theme.iconUrl?.let { url ->
@@ -77,6 +98,9 @@ class ChatActivity : AppCompatActivity() {
 
         closeButton.visibility = if (showCloseButton) View.VISIBLE else View.GONE
         closeButton.setOnClickListener { finishWithAnimation() }
+
+        // 3-dot menu → "Mark as resolved" popup
+        menuButton.setOnClickListener { showHeaderMenu(menuButton) }
 
         // Tab layout + ViewPager
         tabLayout = findViewById(R.id.tabLayout)
@@ -96,17 +120,47 @@ class ChatActivity : AppCompatActivity() {
             }
         }.attach()
 
-        // Show menu button only on Chat tab
+        // Show menu button only on Chat tab AND only when there's an active ticket
         viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                menuButton.visibility = if (position == 0) View.VISIBLE else View.GONE
+                updateMenuButtonVisibility(position)
             }
         })
+
+        // React to ticket lifecycle so the menu button hides when a ticket is
+        // resolved (and re-appears when a new one is created).
+        viewModel.conversationManager.activeThreadId.observe(this) {
+            updateMenuButtonVisibility(viewPager.currentItem)
+        }
+    }
+
+    private fun updateMenuButtonVisibility(position: Int) {
+        val showMenu = position == 0 && viewModel.conversationManager.activeTicketId != null
+        menuButton.visibility = if (showMenu) View.VISIBLE else View.GONE
+    }
+
+    private fun showHeaderMenu(anchor: View) {
+        val popup = PopupMenu(this, anchor)
+        popup.menu.add(0, MENU_MARK_RESOLVED, 0, R.string.lc_mark_resolved)
+        popup.setOnMenuItemClickListener { item ->
+            if (item.itemId == MENU_MARK_RESOLVED) {
+                viewModel.markActiveTicketResolved()
+                true
+            } else false
+        }
+        popup.show()
+    }
+
+    /** Public — let ActivityTabFragment ask us to switch to the Chat tab. */
+    internal fun switchToTab(index: Int) {
+        if (::viewPager.isInitialized) {
+            viewPager.currentItem = index
+        }
     }
 
     private fun showMemberDetailsForm() {
         val dialog = MemberDetailsDialogFragment.newInstance()
-        dialog.onProfileSubmitted = { profile ->
+        dialog.onProfileSubmitted = { _ ->
             setupUI(intent.getBooleanExtra(EXTRA_SHOW_CLOSE_BUTTON, true))
         }
         dialog.onCancelled = {
@@ -137,5 +191,6 @@ class ChatActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_WIDGET_KEY = "lc_widget_key"
         const val EXTRA_SHOW_CLOSE_BUTTON = "lc_show_close"
+        private const val MENU_MARK_RESOLVED = 1
     }
 }

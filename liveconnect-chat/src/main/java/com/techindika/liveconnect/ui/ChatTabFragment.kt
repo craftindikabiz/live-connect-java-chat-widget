@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.techindika.liveconnect.LiveConnectChat
@@ -41,9 +42,10 @@ class ChatTabFragment : Fragment() {
     private lateinit var emptyChatState: View
     private lateinit var readOnlyNotice: View
 
-    private lateinit var conversationManager: ConversationManager
-    private lateinit var socketService: SocketService
-    private lateinit var socketEventManager: SocketEventManager
+    private val vm: ChatViewModel by activityViewModels()
+    private val conversationManager: ConversationManager get() = vm.conversationManager
+    private val socketService: SocketService get() = vm.socketService
+    private val socketEventManager: SocketEventManager get() = vm.socketEventManager
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var isSending = false
@@ -108,12 +110,7 @@ class ChatTabFragment : Fragment() {
         // Attach button
         attachButton.setOnClickListener { showAttachmentMenu() }
 
-        // Initialize services
-        conversationManager = ConversationManager()
-        socketService = SocketService.getInstance()
-        socketEventManager = SocketEventManager(socketService)
-
-        // Observe thread changes
+        // Observe thread changes (managers come from the activity-scoped ViewModel)
         conversationManager.threads.observe(viewLifecycleOwner) { threads ->
             val active = conversationManager.activeThread
             if (active != null) {
@@ -121,8 +118,39 @@ class ChatTabFragment : Fragment() {
             }
         }
 
-        // Load tickets and connect
-        loadTicketsFromAPI()
+        // Observe navigation requests from ActivityTabFragment ("tap an old ticket")
+        vm.navigateToThread.observe(viewLifecycleOwner) { ticketId ->
+            if (ticketId != null) {
+                openTicket(ticketId)
+                vm.consumeNavigation()
+            }
+        }
+
+        // Load tickets and connect (only once — VM survives fragment recreation)
+        if (conversationManager.threads.value.isNullOrEmpty()) {
+            loadTicketsFromAPI()
+        }
+    }
+
+    /**
+     * Switch the active thread to the one matching the given ticket id and
+     * pull its messages from the API. Mirrors Flutter's _handleThreadSelect.
+     */
+    private fun openTicket(ticketId: String) {
+        // Find the local thread that maps to this ticket id
+        val thread = conversationManager.threads.value
+            ?.firstOrNull { conversationManager.getTicketIdForThread(it.id) == ticketId }
+        if (thread != null) {
+            conversationManager.switchToThread(thread.id)
+        }
+
+        // Always reload messages from the API (resolved tickets show as read-only)
+        loadMessagesForTicket(ticketId)
+
+        // Reconnect the socket if needed (open tickets only — closed ones stay read-only)
+        if (thread != null && !thread.isClosed && !isSocketConnected) {
+            connectSocketToResume(ticketId)
+        }
     }
 
     private fun loadTicketsFromAPI() {

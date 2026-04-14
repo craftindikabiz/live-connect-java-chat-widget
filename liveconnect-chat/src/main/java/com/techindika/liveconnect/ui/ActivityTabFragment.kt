@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.techindika.liveconnect.LiveConnectChat
@@ -21,6 +22,8 @@ import org.json.JSONObject
  * Activity tab — shows conversation history (ticket list).
  */
 class ActivityTabFragment : Fragment() {
+
+    private val vm: ChatViewModel by activityViewModels()
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyState: View
@@ -40,8 +43,10 @@ class ActivityTabFragment : Fragment() {
         emptyState = view.findViewById(R.id.emptyState)
 
         ticketAdapter = TicketAdapter(LiveConnectChat.currentTheme) { ticket ->
-            // On ticket tap — could navigate to view that conversation
-            Log.d(TAG, "Ticket tapped: ${ticket.id}")
+            // Tell the Chat tab to open this ticket, then switch tabs.
+            // Mirrors Flutter's _handleThreadSelect.
+            vm.selectThread(ticket.id)
+            (activity as? ChatActivity)?.switchToTab(0)
         }
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = ticketAdapter

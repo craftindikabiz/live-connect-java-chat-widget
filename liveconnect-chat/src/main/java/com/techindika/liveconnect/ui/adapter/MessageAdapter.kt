@@ -80,12 +80,25 @@ internal class MessageAdapter(
 
             timestamp.text = TIME_FORMAT.get()!!.format(message.timestamp)
 
-            // Status icon
-            statusIcon.text = when (message.status) {
-                MessageStatus.SENDING -> "\u23F1"  // timer
-                MessageStatus.SENT -> "\u2713"      // single check
-                MessageStatus.DELIVERED -> "\u2713\u2713"  // double check
-                MessageStatus.READ -> "\u2713\u2713"       // double check (blue in Flutter)
+            // Status icon — glyph + colour mirror Flutter's _buildStatusIndicator.
+            // Read state uses golden so it stands out against the primary-colour bubble.
+            when (message.status) {
+                MessageStatus.SENDING -> {
+                    statusIcon.text = "\u29D6" // ⧖ hourglass — clearer than the clock emoji on AOSP
+                    statusIcon.setTextColor(STATUS_COLOR_TRANSLUCENT_WHITE)
+                }
+                MessageStatus.SENT -> {
+                    statusIcon.text = "\u2713" // ✓ single check
+                    statusIcon.setTextColor(STATUS_COLOR_TRANSLUCENT_WHITE)
+                }
+                MessageStatus.DELIVERED -> {
+                    statusIcon.text = "\u2713\u2713" // ✓✓ double check
+                    statusIcon.setTextColor(STATUS_COLOR_TRANSLUCENT_WHITE)
+                }
+                MessageStatus.READ -> {
+                    statusIcon.text = "\u2713\u2713" // ✓✓ double check, golden
+                    statusIcon.setTextColor(STATUS_COLOR_GOLD)
+                }
             }
 
             // Attachment
@@ -164,6 +177,11 @@ internal class MessageAdapter(
         private const val VIEW_TYPE_VISITOR = 0
         private const val VIEW_TYPE_AGENT = 1
         private const val VIEW_TYPE_SYSTEM = 2
+
+        // Status icon colours on visitor (primary-coloured) bubbles.
+        // Translucent white = sent/delivered, gold = read — matches Flutter intent.
+        private const val STATUS_COLOR_TRANSLUCENT_WHITE = 0xB3FFFFFF.toInt()
+        private const val STATUS_COLOR_GOLD = 0xFFFFD700.toInt()
 
         private val TIME_FORMAT = ThreadLocal.withInitial { SimpleDateFormat("h:mm a", Locale.US) }
     }
