@@ -40,7 +40,9 @@ android {
     publishing {
         singleVariant("release") {
             withSourcesJar()
-            withJavadocJar()
+            // Dokka javadoc generation adds ~60-90s to the JitPack build and
+            // pushes us over JitPack's container-status timeout window. Skip
+            // it; consumers get IDE navigation via the sources jar instead.
         }
     }
 
@@ -111,12 +113,12 @@ publishing {
             // Version resolution order:
             //  1. -PVERSION_NAME=<tag>   (what JitPack passes on real builds)
             //  2. $VERSION_NAME env var  (alternative JitPack convention)
-            //  3. "v1.0.1" fallback      (local publishToMavenLocal testing)
+            //  3. "v1.0.2" fallback      (local publishToMavenLocal testing)
             groupId = "com.github.craftindikabiz"
             artifactId = "live-connect-java-chat-widget"
             version = (project.findProperty("VERSION_NAME") as String?)
                 ?: System.getenv("VERSION_NAME")
-                ?: "v1.0.1"
+                ?: "v1.0.2"
         }
     }
 }
