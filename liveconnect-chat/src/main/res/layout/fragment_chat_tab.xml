@@ -31,12 +31,24 @@
         android:layout_weight="1"
         android:visibility="gone" />
 
-    <!-- Suggested messages -->
-    <FrameLayout
+    <!-- Suggested messages — horizontal chip row shown above the composer when
+         the active thread has no visitor messages yet. Chip pills are added
+         programmatically by ChatTabFragment.renderSuggestions(). -->
+    <HorizontalScrollView
         android:id="@+id/suggestedMessagesContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:visibility="gone" />
+        android:scrollbars="none"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/suggestedMessagesRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp" />
+    </HorizontalScrollView>
 
     <!-- Read-only notice -->
     <LinearLayout

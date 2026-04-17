@@ -1,24 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    "Start a conversation" splash. Shown when the active thread has zero
+    messages — including immediately after a ticket:resolved, when
+    ConversationManager.markActiveThreadAsResolved() creates a fresh
+    empty thread. Mirrors Flutter's EmptyChatState widget.
+
+    The icon colour + circle background are tinted per-theme from
+    ChatTabFragment.applyEmptyStateTheme() — do not set static colours here.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/emptyChatRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
     android:padding="32dp">
 
-    <!-- Icon circle -->
+    <!-- Icon circle — 72dp per Flutter design -->
     <FrameLayout
+        android:id="@+id/emptyIconCircle"
         android:layout_width="@dimen/lc_empty_chat_icon_size"
         android:layout_height="@dimen/lc_empty_chat_icon_size"
         android:background="@drawable/bg_empty_chat_icon">
 
         <ImageView
             android:id="@+id/emptyIcon"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:layout_gravity="center"
-            android:src="@android:drawable/sym_action_chat"
-            android:contentDescription="Chat" />
+            android:src="@drawable/lc_ic_chat_bubble_outline"
+            android:contentDescription="Start a conversation" />
     </FrameLayout>
 
     <TextView
@@ -29,7 +40,7 @@
         android:textSize="@dimen/lc_empty_chat_title_size"
         android:textStyle="bold"
         android:textColor="@color/lc_text_primary"
-        android:layout_marginTop="16dp" />
+        android:layout_marginTop="20dp" />
 
     <TextView
         android:id="@+id/emptyDescription"

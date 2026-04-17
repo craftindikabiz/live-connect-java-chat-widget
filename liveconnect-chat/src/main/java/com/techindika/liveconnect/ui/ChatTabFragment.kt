@@ -15,6 +15,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.techindika.liveconnect.LiveConnectChat
+import com.techindika.liveconnect.LiveConnectTheme
 import com.techindika.liveconnect.R
 import com.techindika.liveconnect.model.*
 import com.techindika.liveconnect.network.ApiResult
@@ -41,6 +42,8 @@ class ChatTabFragment : Fragment() {
     private lateinit var attachButton: ImageButton
     private lateinit var emptyChatState: View
     private lateinit var readOnlyNotice: View
+    private lateinit var suggestedMessagesContainer: android.widget.HorizontalScrollView
+    private lateinit var suggestedMessagesRow: android.widget.LinearLayout
 
     private val vm: ChatViewModel by activityViewModels()
     private val conversationManager: ConversationManager get() = vm.conversationManager
@@ -77,6 +80,10 @@ class ChatTabFragment : Fragment() {
         attachButton = view.findViewById(R.id.attachButton)
         emptyChatState = view.findViewById(R.id.emptyChatState)
         readOnlyNotice = view.findViewById(R.id.readOnlyNotice)
+        suggestedMessagesContainer = view.findViewById(R.id.suggestedMessagesContainer)
+        suggestedMessagesRow = view.findViewById(R.id.suggestedMessagesRow)
+
+        applyEmptyStateTheme(theme)
 
         // Setup RecyclerView
         val layoutManager = LinearLayoutManager(requireContext())
@@ -496,6 +503,104 @@ class ChatTabFragment : Fragment() {
             readOnlyNotice.visibility = View.GONE
             inputContainer?.visibility = View.VISIBLE
         }
+
+        // ── Starter suggestions ────────────────────────────────────────────
+        // Mirrors Flutter's chat_screen_tabbed.dart:
+        //   showSuggestions = !hasVisitorMessages && activeThread.isActive
+        //                     && theme.suggestedMessages.isNotEmpty
+        // This reappears naturally after a resolve because
+        // ConversationManager.markActiveThreadAsResolved() creates a fresh
+        // active thread with zero visitor messages.
+        renderSuggestions(thread)
+    }
+
+    /**
+     * Tint the empty-state icon + circle from the active theme. Called once
+     * at onViewCreated; the drawables honour theme.emptyChatIconColor and a
+     * derived 8% primary tint for the circle (matches Flutter's default).
+     */
+    private fun applyEmptyStateTheme(theme: LiveConnectTheme) {
+        val v = view ?: return
+        val circle = v.findViewById<View>(R.id.emptyIconCircle)
+        val icon = v.findViewById<android.widget.ImageView>(R.id.emptyIcon)
+        val title = v.findViewById<android.widget.TextView>(R.id.emptyTitle)
+        val desc = v.findViewById<android.widget.TextView>(R.id.emptyDescription)
+
+        // Circle background at 8% primary (matches Flutter's default derivation)
+        val circleBg = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.OVAL
+            setColor(LiveConnectTheme.withAlphaColor(theme.emptyChatIconColor, 0.08f))
+        }
+        circle.background = circleBg
+        icon.setColorFilter(theme.emptyChatIconColor)
+        title.setTextColor(theme.emptyChatTitleColor)
+        desc.setTextColor(theme.emptyChatDescriptionColor)
+        title.textSize = theme.emptyChatTitleFontSize
+        desc.textSize = theme.emptyChatDescriptionFontSize
+    }
+
+    /**
+     * Rebuild the suggestion-chip row for the given thread. Shown when:
+     *  - the thread is active (not closed),
+     *  - the visitor hasn't sent any message yet in this thread, AND
+     *  - theme.suggestedMessages is non-empty.
+     *
+     * Tapping a chip sends it as a visitor message immediately — matches
+     * Flutter's _handleSuggestedMessageTap.
+     */
+    private fun renderSuggestions(thread: ConversationThread) {
+        val theme = LiveConnectChat.currentTheme
+        val suggestions = theme.suggestedMessages
+        val hasVisitorMessage = thread.messages.any {
+            it.sender == com.techindika.liveconnect.model.MessageSender.VISITOR
+        }
+        val shouldShow = thread.isActive && !hasVisitorMessage && suggestions.isNotEmpty()
+
+        suggestedMessagesRow.removeAllViews()
+        if (!shouldShow) {
+            suggestedMessagesContainer.visibility = View.GONE
+            return
+        }
+
+        val ctx = requireContext()
+        val density = ctx.resources.displayMetrics.density
+        fun dp(n: Int) = (n * density).toInt()
+
+        suggestions.forEach { text ->
+            val chip = android.widget.TextView(ctx).apply {
+                this.text = text
+                textSize = 13f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(theme.primaryColor)
+                setPadding(dp(14), dp(8), dp(14), dp(8))
+                isSingleLine = true
+                ellipsize = android.text.TextUtils.TruncateAt.END
+
+                // Pill background with primary border — tinted drawable so it
+                // picks up the active theme's primary colour at render time.
+                val bg = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                    cornerRadius = dp(20).toFloat()
+                    setColor(android.graphics.Color.WHITE)
+                    setStroke(
+                        dp(1),
+                        LiveConnectTheme.withAlphaColor(theme.primaryColor, 0.35f)
+                    )
+                }
+                background = bg
+
+                val lp = android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                lp.marginEnd = dp(8)
+                layoutParams = lp
+
+                setOnClickListener { sendMessage(text) }
+            }
+            suggestedMessagesRow.addView(chip)
+        }
+        suggestedMessagesContainer.visibility = View.VISIBLE
     }
 
     private fun showAttachmentMenu() {

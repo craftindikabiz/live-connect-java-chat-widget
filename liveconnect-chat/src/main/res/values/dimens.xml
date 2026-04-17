@@ -36,7 +36,7 @@
 
     <dimen name="lc_system_message_size">12sp</dimen>
 
-    <dimen name="lc_empty_chat_icon_size">64dp</dimen>
+    <dimen name="lc_empty_chat_icon_size">72dp</dimen>
     <dimen name="lc_empty_chat_title_size">20sp</dimen>
     <dimen name="lc_empty_chat_desc_size">14sp</dimen>
 
