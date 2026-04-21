@@ -148,7 +148,12 @@ class ChatActivity : AppCompatActivity() {
 
         // React to ticket lifecycle so the menu button hides when a ticket is
         // resolved (and re-appears when a new one is created).
+        // Observe both activeThreadId and threads so the button updates when the
+        // API ticket list loads (threadToTicket is populated at that point).
         viewModel.conversationManager.activeThreadId.observe(this) {
+            updateMenuButtonVisibility(viewPager.currentItem)
+        }
+        viewModel.conversationManager.threads.observe(this) {
             updateMenuButtonVisibility(viewPager.currentItem)
         }
     }

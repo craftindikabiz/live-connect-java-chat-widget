@@ -87,6 +87,11 @@ class ChatTabFragment : Fragment() {
 
         applyEmptyStateTheme(theme)
 
+        // "Start new conversation" button inside the read-only notice
+        val newConversationButton = view.findViewById<android.widget.Button>(R.id.newConversationButton)
+        newConversationButton.setTextColor(theme.primaryColor)
+        newConversationButton.setOnClickListener { startNewConversation() }
+
         // Setup RecyclerView
         val layoutManager = LinearLayoutManager(requireContext())
         layoutManager.stackFromEnd = true
@@ -132,13 +137,18 @@ class ChatTabFragment : Fragment() {
             }
         }
         socketHandler.onTicketResolved = {
+            // Notify ActivityTabFragment to refresh its ticket list from the API.
             vm.notifyTicketResolved()
             if (isAdded) {
+                // Immediate UI feedback — hide input, show read-only notice.
                 val inputContainer = view?.findViewById<View>(R.id.messageInput)
                 inputContainer?.visibility = View.GONE
                 readOnlyNotice.visibility = View.VISIBLE
                 Toast.makeText(requireContext(), R.string.lc_conversation_resolved, Toast.LENGTH_SHORT).show()
-                // Switch to Activity tab so the user sees the updated ticket list
+                // Re-fetch tickets from API so conversationManager reflects the true
+                // server state (resolved ticket closed, any other open ticket becomes active).
+                loadTicketsFromAPI()
+                // Switch to Activity tab so the user sees the refreshed ticket list.
                 (activity as? ChatActivity)?.switchToTab(1)
             }
         }
@@ -152,9 +162,7 @@ class ChatTabFragment : Fragment() {
             }
         }
 
-        // Also observe activeThreadId so that when markActiveThreadAsResolved()
-        // creates a new thread (via postValue), the UI refreshes even if the
-        // threads LiveData coalesced the intermediate update.
+        // Also observe activeThreadId for UI refreshes.
         conversationManager.activeThreadId.observe(viewLifecycleOwner) { _ ->
             val active = conversationManager.activeThread
             if (active != null) {
@@ -184,15 +192,18 @@ class ChatTabFragment : Fragment() {
         // Find the local thread that maps to this ticket id
         val thread = conversationManager.threads.value
             ?.firstOrNull { conversationManager.getTicketIdForThread(it.id) == ticketId }
-        if (thread != null) {
-            conversationManager.switchToThread(thread.id)
-        }
 
-        // Always reload messages from the API (resolved tickets show as read-only)
+        // If the thread is not in local state, don't load messages into whatever
+        // thread happens to be active (could be an unrelated open thread).
+        if (thread == null) return
+
+        conversationManager.switchToThread(thread.id)
+
+        // Reload messages from the API (resolved tickets show as read-only)
         loadMessagesForTicket(ticketId)
 
         // Reconnect the socket if needed (open tickets only — closed ones stay read-only)
-        if (thread != null && !thread.isClosed && !socketHandler.isSocketConnected) {
+        if (!thread.isClosed && !socketHandler.isSocketConnected) {
             socketHandler.connectToResume(ticketId)
         }
     }
@@ -309,9 +320,11 @@ class ChatTabFragment : Fragment() {
                 val data = json.optJSONObject("data")
                 if (data != null) {
                     val result = TicketMessagesResult.fromJson(data)
-                    val threadId = conversationManager.activeThreadId.value
-                    if (threadId != null) {
-                        conversationManager.updateThreadMessages(threadId, result.messages)
+                    withContext(Dispatchers.Main) {
+                        val threadId = conversationManager.activeThreadId.value
+                        if (threadId != null) {
+                            conversationManager.updateThreadMessages(threadId, result.messages)
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -324,7 +337,20 @@ class ChatTabFragment : Fragment() {
         }
     }
 
+    /**
+     * Start a fresh conversation. Resets the socket handler and creates a new
+     * client-side thread. The user's first message will open a new ticket on the server.
+     */
+    private fun startNewConversation() {
+        socketService.disconnect()
+        socketHandler.reset()
+        conversationManager.initializeWithNewThread()
+    }
+
     private fun sendMessage(text: String, attachment: Attachment? = null) {
+        // Hard guard — never send on a closed/resolved thread regardless of UI state.
+        if (conversationManager.activeThread?.isClosed == true) return
+
         isSending = true
         sendButton.isEnabled = false
 
@@ -399,9 +425,6 @@ class ChatTabFragment : Fragment() {
         // Mirrors Flutter's chat_screen_tabbed.dart:
         //   showSuggestions = !hasVisitorMessages && activeThread.isActive
         //                     && theme.suggestedMessages.isNotEmpty
-        // This reappears naturally after a resolve because
-        // ConversationManager.markActiveThreadAsResolved() creates a fresh
-        // active thread with zero visitor messages.
         renderSuggestions(thread)
 
         // Show/hide agent chip based on current agent info

@@ -14,6 +14,7 @@
     <string name="lc_agent_typing">typing\u2026</string>
     <string name="lc_mark_resolved">Mark as resolved</string>
     <string name="lc_read_only_notice">This conversation is closed.</string>
+    <string name="lc_new_conversation">Start new conversation</string>
     <string name="lc_rating_title">Rate your experience</string>
     <string name="lc_rating_submit">Submit</string>
     <string name="lc_rating_cancel">Cancel</string>

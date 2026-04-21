@@ -13,6 +13,7 @@ data class ConversationThread(
     val messages: List<Message> = emptyList(),
     val agentName: String = "",
     val agentStatus: String = "",
+    val agentAssignedAt: Date? = null,
     val updatedAt: Date = Date(),
     val createdAt: Date = Date(),
     val firstMessage: String? = null,
@@ -28,13 +29,14 @@ data class ConversationThread(
         messages: List<Message> = this.messages,
         agentName: String = this.agentName,
         agentStatus: String = this.agentStatus,
+        agentAssignedAt: Date? = this.agentAssignedAt,
         updatedAt: Date = this.updatedAt,
         createdAt: Date = this.createdAt,
         firstMessage: String? = this.firstMessage,
         lastMessage: String? = this.lastMessage
     ): ConversationThread = ConversationThread(
         id, title, status, messages, agentName, agentStatus,
-        updatedAt, createdAt, firstMessage, lastMessage
+        agentAssignedAt, updatedAt, createdAt, firstMessage, lastMessage
     )
 }
 

@@ -119,7 +119,7 @@ publishing {
             artifactId = "live-connect-java-chat-widget"
             version = (project.findProperty("VERSION_NAME") as String?)
                 ?: System.getenv("VERSION_NAME")
-                ?: "v1.0.4"
+                ?: "v1.0.5"
         }
     }
 }

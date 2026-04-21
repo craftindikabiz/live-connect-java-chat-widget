@@ -34,22 +34,25 @@ internal class ConversationManager {
             return threadToTicket[threadId]
         }
 
-    /** Initialize from API ticket list. */
+    /** Initialize from API ticket list. Always called on the main thread. */
     fun initializeFromTickets(tickets: List<WidgetTicket>) {
         val converted = tickets.map { convertTicketToThread(it) }
-        _threads.postValue(converted)
+        // Use setValue (not postValue) so _threads.value is immediately correct.
+        // postValue is async — a subsequent initializeWithNewThread() call would
+        // read the stale empty list and overwrite the ticket threads.
+        _threads.value = converted
 
         // Find first open ticket for active thread
         val activeTicket = tickets.firstOrNull { it.status == "open" }
         if (activeTicket != null) {
             val thread = converted.find { threadToTicket[it.id] == activeTicket.id }
-            _activeThreadId.postValue(thread?.id)
+            _activeThreadId.value = thread?.id
         } else {
             initializeWithNewThread()
         }
     }
 
-    /** Create a fresh empty active thread. */
+    /** Create a fresh empty active thread. Always called on the main thread. */
     fun initializeWithNewThread() {
         val newThread = ConversationThread(
             id = UUID.randomUUID().toString(),
@@ -61,14 +64,20 @@ internal class ConversationManager {
         )
         val current = _threads.value.orEmpty().toMutableList()
         current.add(0, newThread)
-        _threads.postValue(current)
-        _activeThreadId.postValue(newThread.id)
+        _threads.value = current
+        _activeThreadId.value = newThread.id
     }
 
     /** Set the ticket ID for the active thread (after ticket:created). */
     fun setTicketIdForActiveThread(ticketId: String) {
         val threadId = _activeThreadId.value ?: return
         threadToTicket[threadId] = ticketId
+    }
+
+    /** Record when an agent was assigned to the active thread (from broadcast socket event). */
+    fun setAgentAssignedAt(timestamp: Date) {
+        val threadId = _activeThreadId.value ?: return
+        updateThread(threadId) { it.copyWith(agentAssignedAt = timestamp) }
     }
 
     /** Add a message to the active thread. */
@@ -106,12 +115,46 @@ internal class ConversationManager {
         }
     }
 
-    /** Update message delivery/read status. */
+    /**
+     * Advance every [MessageStatus.SENDING] message in the active thread to [MessageStatus.SENT].
+     * Called after [ticket:created] because the server does not echo the first message back via
+     * [message:received] (it arrives through the auth payload), so the optimistic local message
+     * would otherwise stay stuck at SENDING indefinitely.
+     */
+    fun markSendingMessagesAsSent() {
+        val threadId = _activeThreadId.value ?: return
+        updateThread(threadId) { thread ->
+            val updated = thread.messages.map {
+                if (it.status == MessageStatus.SENDING) it.copyWith(status = MessageStatus.SENT) else it
+            }
+            thread.copyWith(messages = updated)
+        }
+    }
+
+    /** Update a single message's delivery/read status by message ID. */
     fun updateMessageStatus(messageId: String, status: MessageStatus) {
         val threadId = _activeThreadId.value ?: return
         updateThread(threadId) { thread ->
             val updated = thread.messages.map {
                 if (it.id == messageId) it.copyWith(status = status) else it
+            }
+            thread.copyWith(messages = updated)
+        }
+    }
+
+    /**
+     * Bulk-update all VISITOR messages in the active thread to [status].
+     * Used when the server sends a ticket-level [messages:status_updated] event
+     * (no messageId — the entire ticket's messages advance to the new status).
+     * Only moves status forward (SENDING < SENT < DELIVERED < READ).
+     */
+    fun updateAllVisitorMessagesStatus(status: MessageStatus) {
+        val threadId = _activeThreadId.value ?: return
+        updateThread(threadId) { thread ->
+            val updated = thread.messages.map {
+                if (it.sender == MessageSender.VISITOR && it.status < status)
+                    it.copyWith(status = status)
+                else it
             }
             thread.copyWith(messages = updated)
         }
@@ -124,34 +167,42 @@ internal class ConversationManager {
                 .filter { it.type != "pin" }                      // drop pin-type messages
                 .map { convertTicketMessageToMessage(it) }
                 .filter { it.text.isNotBlank() || it.hasAttachment } // drop empty content
-            thread.copyWith(messages = converted)
+
+            // The "X has joined the chat" broadcast is a socket-only event — the REST
+            // API messages endpoint doesn't return it. Synthesize it from ticket data
+            // so it always shows up, even after an app restart.
+            val agentName = thread.agentName
+            val assignedAt = thread.agentAssignedAt
+            val alreadyHasJoinMessage = converted.any {
+                (it.sender == MessageSender.SYSTEM || it.sender == MessageSender.BROADCAST)
+                && it.text.contains("joined the chat", ignoreCase = true)
+            }
+            val finalMessages = if (agentName.isNotBlank() && assignedAt != null && !alreadyHasJoinMessage) {
+                val joinMsg = Message(
+                    id = "synthetic-join-$threadId",
+                    text = "$agentName has joined the chat",
+                    sender = MessageSender.SYSTEM,
+                    timestamp = assignedAt,
+                    status = MessageStatus.READ
+                )
+                (converted + joinMsg).sortedBy { it.timestamp }
+            } else {
+                converted
+            }
+
+            thread.copyWith(messages = finalMessages)
         }
     }
 
-    /** Mark the active thread as resolved and create a new one. */
+    /** Mark the active thread as resolved (closed). The UI will switch to read-only mode. */
     fun markActiveThreadAsResolved() {
         val threadId = _activeThreadId.value ?: return
-
-        // Build the new empty thread
-        val newThread = ConversationThread(
-            id = UUID.randomUUID().toString(),
-            title = "New Conversation",
-            status = ConversationStatus.ACTIVE,
-            messages = emptyList(),
-            updatedAt = Date(),
-            createdAt = Date()
-        )
-
-        // Apply both operations on the SAME list snapshot so the old thread
-        // is properly marked CLOSED in the final posted value.
         val current = _threads.value.orEmpty().toMutableList()
         val index = current.indexOfFirst { it.id == threadId }
         if (index >= 0) {
             current[index] = current[index].copyWith(status = ConversationStatus.CLOSED)
+            _threads.postValue(current)
         }
-        current.add(0, newThread)
-        _threads.postValue(current)
-        _activeThreadId.postValue(newThread.id)
     }
 
     /** Switch to a different thread by ID. */
@@ -195,7 +246,13 @@ internal class ConversationManager {
         val index = current.indexOfFirst { it.id == threadId }
         if (index >= 0) {
             current[index] = transform(current[index])
-            _threads.postValue(current)
+            // Use setValue (synchronous) so _threads.value reflects the update immediately.
+            // postValue is async — rapid sequential calls (e.g. broadcast:message then
+            // ticket:created) would each read the stale old value, and the last postValue
+            // would clobber earlier updates (e.g. the join message would be lost).
+            // All callers are already on the main thread (dispatched via mainHandler.post
+            // or withContext(Dispatchers.Main)), so setValue is safe here.
+            _threads.value = current
         }
     }
 
@@ -214,6 +271,7 @@ internal class ConversationManager {
             messages = emptyList(),
             agentName = ticket.agentName ?: "",
             agentStatus = ticket.agentStatus ?: "",
+            agentAssignedAt = parseIsoDate(ticket.agentAssignedAt),
             updatedAt = updatedAt,
             createdAt = createdAt,
             firstMessage = ticket.firstMessage,

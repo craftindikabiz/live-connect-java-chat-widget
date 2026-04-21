@@ -63,25 +63,41 @@
         android:id="@+id/readOnlyNotice"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:gravity="center"
         android:padding="12dp"
         android:background="@drawable/bg_read_only_notice"
         android:layout_margin="12dp"
         android:visibility="gone">
 
-        <ImageView
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:src="@android:drawable/ic_lock_lock"
-            android:contentDescription="Locked" />
-
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/lc_read_only_notice"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@android:drawable/ic_lock_lock"
+                android:contentDescription="Locked" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/lc_read_only_notice"
+                android:textSize="13sp"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/newConversationButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/lc_new_conversation"
             android:textSize="13sp"
-            android:layout_marginStart="8dp" />
+            android:layout_marginTop="4dp"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
     </LinearLayout>
 
     <!-- Attachment preview (above input) -->

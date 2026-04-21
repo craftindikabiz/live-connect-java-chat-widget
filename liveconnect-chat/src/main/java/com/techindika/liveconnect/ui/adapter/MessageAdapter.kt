@@ -86,7 +86,7 @@ internal class MessageAdapter(
             // Read state uses golden so it stands out against the primary-colour bubble.
             when (message.status) {
                 MessageStatus.SENDING -> {
-                    statusIcon.text = "\u29D6" // ⧖ hourglass — clearer than the clock emoji on AOSP
+                    statusIcon.text = "\u2713" // ✓ single check (sending)
                     statusIcon.setTextColor(STATUS_COLOR_TRANSLUCENT_WHITE)
                 }
                 MessageStatus.SENT -> {

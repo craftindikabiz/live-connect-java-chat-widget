@@ -29,6 +29,14 @@ internal class ChatTabSocketHandler(
     var isSocketConnecting: Boolean = false
         private set
 
+    /** Reset connection and agent state before starting a new conversation. */
+    fun reset() {
+        currentAgent = null
+        isSocketConnected = false
+        isSocketConnecting = false
+        socketEventManager.reset()
+    }
+
     // ── UI callbacks — set by the hosting fragment ──
 
     /** Called when the assigned agent changes (or is first set). */
@@ -60,7 +68,7 @@ internal class ChatTabSocketHandler(
             name = profile.name,
             email = profile.email,
             phone = profile.phone,
-            firstMessage = thread?.firstMessage ?: thread?.lastMessage ?: "__resume__$ticketId",
+            firstMessage = thread?.firstMessage ?: thread?.lastMessage ?: "",
             ticketId = ticketId
         )
 
@@ -104,6 +112,9 @@ internal class ChatTabSocketHandler(
             val context = LiveConnectChat.appContext ?: return@handler
 
             conversationManager.setTicketIdForActiveThread(event.ticketId)
+            // Server confirmed receipt of the first message (sent via auth payload).
+            // It never echoes message:received for it, so promote SENDING → SENT here.
+            conversationManager.markSendingMessagesAsSent()
             TicketStorage.saveActiveTicketId(context, widgetKey, visitorId, event.ticketId)
             TicketStorage.saveTicketStatus(
                 context, widgetKey, visitorId, TicketStorage.STATUS_OPEN
@@ -163,6 +174,12 @@ internal class ChatTabSocketHandler(
             } else {
                 conversationManager.addMessageToActiveThread(message)
             }
+            // Track when the agent first joined (broadcast join message) so that
+            // updateThreadMessages can skip injecting a duplicate synthetic join message.
+            if (message.sender == com.techindika.liveconnect.model.MessageSender.BROADCAST
+                && message.text.contains("joined the chat", ignoreCase = true)) {
+                conversationManager.setAgentAssignedAt(message.timestamp)
+            }
 
             conversationManager.activeTicketId?.let { ticketId ->
                 socketService.emit(SocketService.EMIT_MESSAGE_DELIVERED, JSONObject().apply {
@@ -172,9 +189,13 @@ internal class ChatTabSocketHandler(
         }
 
         socketEventManager.onMessageStatusUpdated = { event ->
-            conversationManager.updateMessageStatus(
-                event.messageId, MessageStatus.fromString(event.status)
-            )
+            val status = MessageStatus.fromString(event.status)
+            if (event.messageId.isBlank()) {
+                // Ticket-level bulk update — server advances all messages in the ticket.
+                conversationManager.updateAllVisitorMessagesStatus(status)
+            } else {
+                conversationManager.updateMessageStatus(event.messageId, status)
+            }
         }
 
         socketEventManager.onAgentTyping = { event ->
@@ -186,6 +207,16 @@ internal class ChatTabSocketHandler(
         socketEventManager.onAgentChanged = { event ->
             currentAgent = event.agent
             onAgentUpdated?.invoke()
+        }
+
+        socketEventManager.onAgentStatusChanged = { event ->
+            // Update the status on the currently displayed agent if the ID matches.
+            currentAgent?.let { agent ->
+                if (agent.id == event.agentId) {
+                    currentAgent = agent.copyWith(status = com.techindika.liveconnect.model.AgentStatus.fromString(event.status))
+                    onAgentUpdated?.invoke()
+                }
+            }
         }
 
         socketEventManager.onUnreadCount = { event ->
