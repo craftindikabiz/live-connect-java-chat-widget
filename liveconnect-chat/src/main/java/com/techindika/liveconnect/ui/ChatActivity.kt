@@ -126,6 +126,23 @@ class ChatActivity : AppCompatActivity() {
         viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 updateMenuButtonVisibility(position)
+
+                // When switching TO the Chat tab, if the current thread is a
+                // resolved ticket (e.g. user browsed it from Activity tab),
+                // reset to the active or new conversation thread.
+                if (position == 0) {
+                    val active = viewModel.conversationManager.activeThread
+                    if (active != null && active.isClosed) {
+                        // Find an ACTIVE thread, or create a new one
+                        val openThread = viewModel.conversationManager.threads.value
+                            ?.firstOrNull { it.isActive }
+                        if (openThread != null) {
+                            viewModel.conversationManager.switchToThread(openThread.id)
+                        } else {
+                            viewModel.conversationManager.initializeWithNewThread()
+                        }
+                    }
+                }
             }
         })
 

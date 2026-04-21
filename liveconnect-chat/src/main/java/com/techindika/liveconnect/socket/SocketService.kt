@@ -132,6 +132,7 @@ internal class SocketService private constructor() {
             Log.w(TAG, "Cannot emit '$event' — not connected")
             return
         }
+        Log.d(TAG, "⬆ EMIT [$event] ${data.toString().take(500)}")
         socket?.emit(event, data)
     }
 
@@ -141,6 +142,7 @@ internal class SocketService private constructor() {
             Log.w(TAG, "Cannot emit '$event' — not connected")
             return
         }
+        Log.d(TAG, "⬆ EMIT [$event] (no data)")
         socket?.emit(event)
     }
 

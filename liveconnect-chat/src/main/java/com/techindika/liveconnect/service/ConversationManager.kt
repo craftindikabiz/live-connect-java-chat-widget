@@ -120,7 +120,10 @@ internal class ConversationManager {
     /** Load API messages into a thread. */
     fun updateThreadMessages(threadId: String, messages: List<TicketMessage>) {
         updateThread(threadId) { thread ->
-            val converted = messages.map { convertTicketMessageToMessage(it) }
+            val converted = messages
+                .filter { it.type != "pin" }                      // drop pin-type messages
+                .map { convertTicketMessageToMessage(it) }
+                .filter { it.text.isNotBlank() || it.hasAttachment } // drop empty content
             thread.copyWith(messages = converted)
         }
     }
@@ -128,8 +131,27 @@ internal class ConversationManager {
     /** Mark the active thread as resolved and create a new one. */
     fun markActiveThreadAsResolved() {
         val threadId = _activeThreadId.value ?: return
-        updateThread(threadId) { it.copyWith(status = ConversationStatus.CLOSED) }
-        initializeWithNewThread()
+
+        // Build the new empty thread
+        val newThread = ConversationThread(
+            id = UUID.randomUUID().toString(),
+            title = "New Conversation",
+            status = ConversationStatus.ACTIVE,
+            messages = emptyList(),
+            updatedAt = Date(),
+            createdAt = Date()
+        )
+
+        // Apply both operations on the SAME list snapshot so the old thread
+        // is properly marked CLOSED in the final posted value.
+        val current = _threads.value.orEmpty().toMutableList()
+        val index = current.indexOfFirst { it.id == threadId }
+        if (index >= 0) {
+            current[index] = current[index].copyWith(status = ConversationStatus.CLOSED)
+        }
+        current.add(0, newThread)
+        _threads.postValue(current)
+        _activeThreadId.postValue(newThread.id)
     }
 
     /** Switch to a different thread by ID. */

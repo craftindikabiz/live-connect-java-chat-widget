@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.techindika.liveconnect.LiveConnectChat
 import com.techindika.liveconnect.R
 import com.techindika.liveconnect.model.WidgetTicket
@@ -27,6 +28,7 @@ class ActivityTabFragment : Fragment() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyState: View
+    private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var ticketAdapter: TicketAdapter
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
@@ -41,6 +43,10 @@ class ActivityTabFragment : Fragment() {
 
         recyclerView = view.findViewById(R.id.ticketRecyclerView)
         emptyState = view.findViewById(R.id.emptyState)
+        swipeRefresh = view.findViewById(R.id.swipeRefresh)
+
+        swipeRefresh.setColorSchemeColors(LiveConnectChat.currentTheme.primaryColor)
+        swipeRefresh.setOnRefreshListener { refreshTickets() }
 
         ticketAdapter = TicketAdapter(LiveConnectChat.currentTheme) { ticket ->
             // Tell the Chat tab to open this ticket, then switch tabs.
@@ -51,12 +57,31 @@ class ActivityTabFragment : Fragment() {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = ticketAdapter
 
+        // Observe ticket resolved events — auto-refresh list
+        vm.ticketResolved.observe(viewLifecycleOwner) { resolved ->
+            if (resolved == true) {
+                refreshTickets()
+                vm.consumeTicketResolved()
+            }
+        }
+
+        loadTickets()
+    }
+
+    /** Reload the ticket list from the API. Called by pull-to-refresh and externally after resolve. */
+    fun refreshTickets() {
         loadTickets()
     }
 
     private fun loadTickets() {
-        val widgetKey = LiveConnectChat.widgetKey ?: return
-        val profile = LiveConnectChat.visitorProfile ?: return
+        val widgetKey = LiveConnectChat.widgetKey ?: run {
+            swipeRefresh.isRefreshing = false
+            return
+        }
+        val profile = LiveConnectChat.visitorProfile ?: run {
+            swipeRefresh.isRefreshing = false
+            return
+        }
 
         scope.launch(Dispatchers.IO) {
             try {
@@ -75,13 +100,17 @@ class ActivityTabFragment : Fragment() {
                         ticketAdapter.submitList(tickets.toList())
                         emptyState.visibility = if (tickets.isEmpty()) View.VISIBLE else View.GONE
                         recyclerView.visibility = if (tickets.isEmpty()) View.GONE else View.VISIBLE
+                        swipeRefresh.isRefreshing = false
                     }
+                } else {
+                    withContext(Dispatchers.Main) { swipeRefresh.isRefreshing = false }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to load tickets: ${e.message}")
                 withContext(Dispatchers.Main) {
                     emptyState.visibility = View.VISIBLE
                     recyclerView.visibility = View.GONE
+                    swipeRefresh.isRefreshing = false
                 }
             }
         }

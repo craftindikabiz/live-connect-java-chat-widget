@@ -68,6 +68,7 @@ dependencies {
     implementation("androidx.fragment:fragment-ktx:1.6.2")
     implementation("androidx.activity:activity-ktx:1.8.2")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 
     // Networking (OkHttp only — JSON parsed via org.json.JSONObject)
     implementation("com.squareup.retrofit2:retrofit:2.11.0")

@@ -48,42 +48,55 @@ internal class SocketEventManager(private val socketService: SocketService) {
         listenersRegistered = true
 
         socketService.on(SocketService.EVENT_TICKET_CREATED) { args ->
+            logEvent(SocketService.EVENT_TICKET_CREATED, args)
             handleTicketCreated(args)
         }
         socketService.on(SocketService.EVENT_TICKET_RESUMED) { args ->
+            logEvent(SocketService.EVENT_TICKET_RESUMED, args)
             handleTicketResumed(args)
         }
         socketService.on(SocketService.EVENT_TICKET_RESOLVED) { args ->
+            logEvent(SocketService.EVENT_TICKET_RESOLVED, args)
             handleTicketResolved(args)
         }
         socketService.on(SocketService.EVENT_MESSAGE_RECEIVED) { args ->
+            logEvent(SocketService.EVENT_MESSAGE_RECEIVED, args)
             handleMessageReceived(args)
         }
         socketService.on(SocketService.EVENT_MESSAGES_STATUS_UPDATED) { args ->
+            logEvent(SocketService.EVENT_MESSAGES_STATUS_UPDATED, args)
             handleMessageStatusUpdated(args)
         }
         socketService.on(SocketService.EVENT_AGENT_TYPING) { args ->
+            logEvent(SocketService.EVENT_AGENT_TYPING, args)
             handleAgentTyping(args)
         }
         socketService.on(SocketService.EVENT_AGENT_CHANGED) { args ->
+            logEvent(SocketService.EVENT_AGENT_CHANGED, args)
             handleAgentChanged(args)
         }
         socketService.on(SocketService.EVENT_AGENT_REASSIGNED) { args ->
+            logEvent(SocketService.EVENT_AGENT_REASSIGNED, args)
             handleAgentReassigned(args)
         }
         socketService.on(SocketService.EVENT_AGENT_STATUS) { args ->
+            logEvent(SocketService.EVENT_AGENT_STATUS, args)
             handleAgentStatus(args)
         }
         socketService.on(SocketService.EVENT_TICKET_UNREAD_COUNT) { args ->
+            logEvent(SocketService.EVENT_TICKET_UNREAD_COUNT, args)
             handleUnreadCount(args)
         }
         socketService.on(SocketService.EVENT_TICKET_RATE_PROMPT) { args ->
+            logEvent(SocketService.EVENT_TICKET_RATE_PROMPT, args)
             handleRatePrompt(args)
         }
         socketService.on(SocketService.EVENT_BROADCAST_MESSAGE) { args ->
+            logEvent(SocketService.EVENT_BROADCAST_MESSAGE, args)
             handleBroadcastMessage(args)
         }
         socketService.on(SocketService.EVENT_TICKET_ASSIGNED) { args ->
+            logEvent(SocketService.EVENT_TICKET_ASSIGNED, args)
             handleTicketAssigned(args)
         }
 
@@ -156,16 +169,23 @@ internal class SocketEventManager(private val socketService: SocketService) {
     private fun handleMessageReceived(args: Array<Any>) {
         val json = parseJson(args) ?: return
         val msgJson = json.optJSONObject("message") ?: json
+        // Filter out pin-type and empty-content messages
+        val type = msgJson.optString("type", "text")
+        if (type == "pin") return
         val message = convertSocketMessage(msgJson)
+        if (message.text.isBlank() && !message.hasAttachment) return
         dispatch { onMessageReceived?.invoke(message) }
     }
 
     private fun handleBroadcastMessage(args: Array<Any>) {
         val json = parseJson(args) ?: return
         val msgJson = json.optJSONObject("message") ?: json
+        val type = msgJson.optString("type", "text")
+        if (type == "pin") return
         val message = convertSocketMessage(msgJson).copy(
             sender = MessageSender.BROADCAST
         )
+        if (message.text.isBlank() && !message.hasAttachment) return
         dispatch { onMessageReceived?.invoke(message) }
     }
 
@@ -231,7 +251,7 @@ internal class SocketEventManager(private val socketService: SocketService) {
     /** Convert a socket message JSON to a Message model. */
     private fun convertSocketMessage(json: JSONObject): Message {
         val id = json.optString("_id", json.optString("id", ""))
-        val content = json.optString("content", "")
+        val content = json.optStringOrNull("content") ?: ""
         val senderType = MessageSender.fromString(json.optString("senderType", "system"))
         val statusStr = json.optString("status", "sent")
         val status = MessageStatus.fromString(statusStr)
@@ -241,9 +261,9 @@ internal class SocketEventManager(private val socketService: SocketService) {
         val timestamp = parseIsoDate(createdAtStr) ?: Date()
 
         // Parse attachment if present
-        val fileUrl = json.optString("fileUrl", "")
-        val fileName = json.optString("fileName", "")
-        val fileType = json.optString("fileType", "")
+        val fileUrl = json.optStringOrNull("fileUrl") ?: ""
+        val fileName = json.optStringOrNull("fileName") ?: ""
+        val fileType = json.optStringOrNull("fileType") ?: ""
         val attachment = if (fileUrl.isNotEmpty()) {
             val mimeType = normalizeMimeType(fileType)
             val type = if (mimeType.startsWith("image/")) AttachmentType.MEDIA else AttachmentType.DOCUMENT
@@ -304,6 +324,20 @@ internal class SocketEventManager(private val socketService: SocketService) {
 
     private fun dispatch(action: () -> Unit) {
         mainHandler.post(action)
+    }
+
+    /** Log incoming socket events for debugging. */
+    private fun logEvent(event: String, args: Array<Any>) {
+        try {
+            val payload = when (val first = args.firstOrNull()) {
+                is JSONObject -> first.toString().take(500)
+                is String -> first.take(500)
+                else -> first?.toString()?.take(200) ?: "(empty)"
+            }
+            Log.d(TAG, "⚡ [$event] $payload")
+        } catch (e: Exception) {
+            Log.d(TAG, "⚡ [$event] (failed to log payload: ${e.message})")
+        }
     }
 
     /** Pending message info for optimistic message matching. */

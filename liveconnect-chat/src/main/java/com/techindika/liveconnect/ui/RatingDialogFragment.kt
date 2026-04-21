@@ -32,6 +32,7 @@ class RatingDialogFragment : BottomSheetDialogFragment() {
         val cancelButton = view.findViewById<MaterialButton>(R.id.cancelButton)
 
         submitButton.setBackgroundColor(theme.formButtonColor)
+        submitButton.setTextColor(theme.formButtonTextColor)
 
         // Create 5 star icons
         val stars = mutableListOf<ImageView>()

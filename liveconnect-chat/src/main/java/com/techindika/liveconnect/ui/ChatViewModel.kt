@@ -27,12 +27,25 @@ internal class ChatViewModel : ViewModel() {
     /** Ticket id the Chat tab should load + resume. Cleared after consume. */
     val navigateToThread: LiveData<String?> = _navigateToThread
 
+    /** Fires when a ticket is resolved so both tabs can refresh. */
+    private val _ticketResolved = MutableLiveData<Boolean>()
+    val ticketResolved: LiveData<Boolean> = _ticketResolved
+
     fun selectThread(ticketId: String) {
         _navigateToThread.value = ticketId
     }
 
     fun consumeNavigation() {
         _navigateToThread.value = null
+    }
+
+    /** Signal that a ticket has been resolved — both tabs should refresh. */
+    fun notifyTicketResolved() {
+        _ticketResolved.value = true
+    }
+
+    fun consumeTicketResolved() {
+        _ticketResolved.value = false
     }
 
     /** Emit ticket:resolve for the currently-active ticket, if any. */

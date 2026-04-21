@@ -5,8 +5,8 @@ package com.techindika.liveconnect.network
  */
 internal object ApiConstants {
 
-    const val BASE_URL = "https://live-connect-api.techindika.com/"
-    const val SOCKET_URL = "https://live-connect-api.techindika.com"
+    const val BASE_URL = "https://api.dpchat.net/"
+    const val SOCKET_URL = "https://api.dpchat.net"
     const val SOCKET_NAMESPACE = "/visitor"
 
     // Widget config

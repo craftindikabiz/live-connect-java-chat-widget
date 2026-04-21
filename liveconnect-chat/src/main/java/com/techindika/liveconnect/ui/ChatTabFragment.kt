@@ -25,8 +25,6 @@ import com.techindika.liveconnect.socket.SocketEventManager
 import com.techindika.liveconnect.socket.SocketService
 import com.techindika.liveconnect.ui.adapter.MessageAdapter
 import kotlinx.coroutines.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.util.Date
 
@@ -44,6 +42,8 @@ class ChatTabFragment : Fragment() {
     private lateinit var readOnlyNotice: View
     private lateinit var suggestedMessagesContainer: android.widget.HorizontalScrollView
     private lateinit var suggestedMessagesRow: android.widget.LinearLayout
+    private lateinit var agentChipContainer: android.widget.FrameLayout
+    private lateinit var chatSwipeRefresh: androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
     private val vm: ChatViewModel by activityViewModels()
     private val conversationManager: ConversationManager get() = vm.conversationManager
@@ -52,10 +52,7 @@ class ChatTabFragment : Fragment() {
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var isSending = false
-    private var isSocketConnected = false
-    private var isSocketConnecting = false
-    private var currentAgent: AgentInfo? = null
-    private var pendingFirstMessage: String? = null
+    private lateinit var socketHandler: ChatTabSocketHandler
 
     // File picker
     private val filePickerLauncher = registerForActivityResult(
@@ -82,6 +79,11 @@ class ChatTabFragment : Fragment() {
         readOnlyNotice = view.findViewById(R.id.readOnlyNotice)
         suggestedMessagesContainer = view.findViewById(R.id.suggestedMessagesContainer)
         suggestedMessagesRow = view.findViewById(R.id.suggestedMessagesRow)
+        agentChipContainer = view.findViewById(R.id.agentChipContainer)
+        chatSwipeRefresh = view.findViewById(R.id.chatSwipeRefresh)
+
+        chatSwipeRefresh.setColorSchemeColors(theme.primaryColor)
+        chatSwipeRefresh.setOnRefreshListener { refreshChat() }
 
         applyEmptyStateTheme(theme)
 
@@ -117,8 +119,43 @@ class ChatTabFragment : Fragment() {
         // Attach button
         attachButton.setOnClickListener { showAttachmentMenu() }
 
+        // Initialize socket handler
+        socketHandler = ChatTabSocketHandler(conversationManager, socketService, socketEventManager)
+        socketHandler.onAgentUpdated = { updateAgentChip() }
+        socketHandler.onDisconnected = { _ ->
+            if (isAdded) {
+                Toast.makeText(
+                    requireContext(),
+                    "Connection lost. Attempting to reconnect…",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+        socketHandler.onTicketResolved = {
+            vm.notifyTicketResolved()
+            if (isAdded) {
+                val inputContainer = view?.findViewById<View>(R.id.messageInput)
+                inputContainer?.visibility = View.GONE
+                readOnlyNotice.visibility = View.VISIBLE
+                Toast.makeText(requireContext(), R.string.lc_conversation_resolved, Toast.LENGTH_SHORT).show()
+                // Switch to Activity tab so the user sees the updated ticket list
+                (activity as? ChatActivity)?.switchToTab(1)
+            }
+        }
+        socketHandler.onRatePrompted = { showRatingDialog() }
+
         // Observe thread changes (managers come from the activity-scoped ViewModel)
         conversationManager.threads.observe(viewLifecycleOwner) { threads ->
+            val active = conversationManager.activeThread
+            if (active != null) {
+                updateUI(active)
+            }
+        }
+
+        // Also observe activeThreadId so that when markActiveThreadAsResolved()
+        // creates a new thread (via postValue), the UI refreshes even if the
+        // threads LiveData coalesced the intermediate update.
+        conversationManager.activeThreadId.observe(viewLifecycleOwner) { _ ->
             val active = conversationManager.activeThread
             if (active != null) {
                 updateUI(active)
@@ -155,8 +192,8 @@ class ChatTabFragment : Fragment() {
         loadMessagesForTicket(ticketId)
 
         // Reconnect the socket if needed (open tickets only — closed ones stay read-only)
-        if (thread != null && !thread.isClosed && !isSocketConnected) {
-            connectSocketToResume(ticketId)
+        if (thread != null && !thread.isClosed && !socketHandler.isSocketConnected) {
+            socketHandler.connectToResume(ticketId)
         }
     }
 
@@ -224,7 +261,7 @@ class ChatTabFragment : Fragment() {
 
                         if (ticketToResumeId != null) {
                             loadMessagesForTicket(ticketToResumeId)
-                            connectSocketToResume(ticketToResumeId)
+                            socketHandler.connectToResume(ticketToResumeId)
                         }
                     }
                 } else {
@@ -241,9 +278,25 @@ class ChatTabFragment : Fragment() {
         }
     }
 
-    private fun loadMessagesForTicket(ticketId: String) {
-        val widgetKey = LiveConnectChat.widgetKey ?: return
-        val profile = LiveConnectChat.visitorProfile ?: return
+    /** Pull-to-refresh: reload messages for the active ticket. */
+    private fun refreshChat() {
+        val ticketId = conversationManager.activeTicketId
+        if (ticketId != null) {
+            loadMessagesForTicket(ticketId, dismissRefresh = true)
+        } else {
+            chatSwipeRefresh.isRefreshing = false
+        }
+    }
+
+    private fun loadMessagesForTicket(ticketId: String, dismissRefresh: Boolean = false) {
+        val widgetKey = LiveConnectChat.widgetKey ?: run {
+            if (dismissRefresh) chatSwipeRefresh.isRefreshing = false
+            return
+        }
+        val profile = LiveConnectChat.visitorProfile ?: run {
+            if (dismissRefresh) chatSwipeRefresh.isRefreshing = false
+            return
+        }
 
         scope.launch(Dispatchers.IO) {
             try {
@@ -263,168 +316,11 @@ class ChatTabFragment : Fragment() {
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to load messages: ${e.message}")
+            } finally {
+                if (dismissRefresh) {
+                    withContext(Dispatchers.Main) { chatSwipeRefresh.isRefreshing = false }
+                }
             }
-        }
-    }
-
-    private fun connectSocketToResume(ticketId: String) {
-        if (isSocketConnecting || isSocketConnected) return
-        isSocketConnecting = true
-
-        val widgetKey = LiveConnectChat.widgetKey ?: return
-        val profile = LiveConnectChat.visitorProfile ?: return
-        val thread = conversationManager.activeThread
-
-        registerSocketEventHandlers()
-
-        socketService.connect(
-            widgetKey = widgetKey,
-            name = profile.name,
-            email = profile.email,
-            phone = profile.phone,
-            firstMessage = thread?.firstMessage ?: thread?.lastMessage ?: "__resume__$ticketId",
-            ticketId = ticketId
-        )
-
-        socketService.onConnect = {
-            isSocketConnected = true
-            isSocketConnecting = false
-        }
-    }
-
-    private fun connectSocketWithFirstMessage(text: String) {
-        if (isSocketConnecting || isSocketConnected) return
-        isSocketConnecting = true
-
-        val widgetKey = LiveConnectChat.widgetKey ?: return
-        val profile = LiveConnectChat.visitorProfile ?: return
-
-        registerSocketEventHandlers()
-
-        socketService.connect(
-            widgetKey = widgetKey,
-            name = profile.name,
-            email = profile.email,
-            phone = profile.phone,
-            firstMessage = text
-        )
-
-        socketService.onConnect = {
-            isSocketConnected = true
-            isSocketConnecting = false
-        }
-    }
-
-    private fun registerSocketEventHandlers() {
-        socketEventManager.registerListeners()
-
-        socketEventManager.onTicketCreated = handler@{ event ->
-            val widgetKey = LiveConnectChat.widgetKey ?: return@handler
-            val visitorId = LiveConnectChat.visitorId ?: ""
-            val context = LiveConnectChat.appContext ?: return@handler
-
-            conversationManager.setTicketIdForActiveThread(event.ticketId)
-            TicketStorage.saveActiveTicketId(context, widgetKey, visitorId, event.ticketId)
-            // Save status as open so the next session knows the ticket is still active.
-            TicketStorage.saveTicketStatus(
-                context, widgetKey, visitorId, TicketStorage.STATUS_OPEN
-            )
-            event.agent?.let { currentAgent = it }
-
-            // Emit delivered status
-            socketService.emit(SocketService.EMIT_MESSAGE_DELIVERED, JSONObject().apply {
-                put("ticketId", event.ticketId)
-            })
-        }
-
-        // Agent reassigned during an active session — update the AgentInfoChip.
-        // Mirrors Flutter's _handleTicketAssigned in SocketEventManager.
-        socketEventManager.onTicketAssigned = { agent ->
-            currentAgent = agent
-        }
-
-        // Show a toast when the socket drops; the underlying socket.io client
-        // handles reconnection attempts itself, so we only need to surface the state.
-        socketEventManager.onSocketDisconnect = { _ ->
-            isSocketConnected = false
-            if (isAdded) {
-                Toast.makeText(
-                    requireContext(),
-                    "Connection lost. Attempting to reconnect…",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-
-        socketEventManager.onTicketResumed = handler@{ event ->
-            event.agent?.let { currentAgent = it }
-
-            socketService.emit(SocketService.EMIT_MESSAGE_DELIVERED, JSONObject().apply {
-                put("ticketId", event.ticketId)
-            })
-        }
-
-        socketEventManager.onTicketResolved = handler@{ event ->
-            val widgetKey = LiveConnectChat.widgetKey ?: return@handler
-            val visitorId = LiveConnectChat.visitorId ?: ""
-            val context = LiveConnectChat.appContext ?: return@handler
-
-            conversationManager.markActiveThreadAsResolved()
-            // clearActiveTicketId() also clears the status key — see TicketStorage.
-            TicketStorage.clearActiveTicketId(context, widgetKey, visitorId)
-            // Persist the resolved status so the next launch knows not to resume.
-            TicketStorage.saveTicketStatus(
-                context, widgetKey, visitorId, TicketStorage.STATUS_RESOLVED
-            )
-            socketService.disconnect()
-            isSocketConnected = false
-            currentAgent = null
-            if (isAdded) {
-                Toast.makeText(requireContext(), R.string.lc_conversation_resolved, Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        socketEventManager.onMessageReceived = { message ->
-            // Check if this is our own message echoed back
-            val pending = socketEventManager.matchPendingMessage(message.text)
-            if (pending != null) {
-                conversationManager.replaceOptimisticMessage(pending.optimisticId, message)
-            } else {
-                conversationManager.addMessageToActiveThread(message)
-            }
-
-            // Emit delivered
-            conversationManager.activeTicketId?.let { ticketId ->
-                socketService.emit(SocketService.EMIT_MESSAGE_DELIVERED, JSONObject().apply {
-                    put("ticketId", ticketId)
-                })
-            }
-        }
-
-        socketEventManager.onMessageStatusUpdated = { event ->
-            conversationManager.updateMessageStatus(event.messageId, MessageStatus.fromString(event.status))
-        }
-
-        socketEventManager.onAgentTyping = { event ->
-            // Only show the typing bubble if the event is for the currently active
-            // ticket — otherwise typing on an old/closed conversation would leak
-            // into the visible chat. Mirrors Flutter's chat_screen_tabbed.dart.
-            if (event.ticketId == conversationManager.activeTicketId) {
-                // Surface to UI once a typing-bubble view is wired up.
-                // For now the scoping itself is the bug fix.
-            }
-        }
-
-        socketEventManager.onAgentChanged = { event ->
-            currentAgent = event.agent
-        }
-
-        socketEventManager.onUnreadCount = { event ->
-            UnreadCountService.handleUnreadCountEvent(event.ticketId, event.unreadCount)
-        }
-
-        socketEventManager.onRatePrompt = { event ->
-            showRatingDialog()
         }
     }
 
@@ -448,16 +344,11 @@ class ChatTabFragment : Fragment() {
         inputEditText.text.clear()
 
         // If no socket connection, connect with first message (sent via auth payload)
-        if (!isSocketConnected) {
-            pendingFirstMessage = text
-            connectSocketWithFirstMessage(text)
+        if (!socketHandler.isSocketConnected) {
+            socketHandler.connectWithFirstMessage(text)
             // First message is delivered via the auth payload's firstMessage field.
             // The server creates the ticket and echoes back via ticket:created + message:received.
             // No need to emit separately — it would fail anyway since ticketId doesn't exist yet.
-            socketService.onConnect = {
-                isSocketConnected = true
-                isSocketConnecting = false
-            }
         } else {
             emitMessage(text, attachment)
         }
@@ -512,6 +403,55 @@ class ChatTabFragment : Fragment() {
         // ConversationManager.markActiveThreadAsResolved() creates a fresh
         // active thread with zero visitor messages.
         renderSuggestions(thread)
+
+        // Show/hide agent chip based on current agent info
+        updateAgentChip()
+    }
+
+    /**
+     * Inflate and populate the agent info chip when an agent is assigned.
+     * Hides the chip when no agent is set (e.g. new/resolved thread).
+     */
+    private fun updateAgentChip() {
+        val agent = socketHandler.currentAgent
+        if (agent == null || agent.name.isBlank()) {
+            agentChipContainer.visibility = View.GONE
+            return
+        }
+
+        agentChipContainer.removeAllViews()
+        val chipView = layoutInflater.inflate(R.layout.view_agent_info_chip, agentChipContainer, false)
+
+        val agentNameView = chipView.findViewById<android.widget.TextView>(R.id.agentName)
+        val agentStatusView = chipView.findViewById<android.widget.TextView>(R.id.agentStatus)
+        val agentAvatar = chipView.findViewById<android.widget.ImageView>(R.id.agentAvatar)
+        val statusDot = chipView.findViewById<View>(R.id.statusDot)
+
+        agentNameView.text = agent.name
+        agentStatusView.text = agent.status.displayText
+
+        // Status dot color
+        val dotColor = when (agent.status) {
+            com.techindika.liveconnect.model.AgentStatus.ONLINE ->
+                resources.getColor(R.color.lc_status_online, null)
+            com.techindika.liveconnect.model.AgentStatus.BUSY ->
+                resources.getColor(R.color.lc_status_busy, null)
+            com.techindika.liveconnect.model.AgentStatus.AWAY ->
+                resources.getColor(R.color.lc_status_away, null)
+            else ->
+                resources.getColor(R.color.lc_status_offline, null)
+        }
+        (statusDot.background as? android.graphics.drawable.GradientDrawable)?.setColor(dotColor)
+
+        // Avatar
+        if (!agent.photo.isNullOrEmpty()) {
+            com.bumptech.glide.Glide.with(this).load(agent.photo).circleCrop().into(agentAvatar)
+        } else {
+            agentAvatar.setImageResource(android.R.drawable.sym_def_app_icon)
+        }
+
+        agentChipContainer.addView(chipView)
+        agentChipContainer.visibility = View.VISIBLE
     }
 
     /**

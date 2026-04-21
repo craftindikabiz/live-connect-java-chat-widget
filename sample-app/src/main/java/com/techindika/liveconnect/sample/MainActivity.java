@@ -19,8 +19,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         VisitorProfile visitor = new VisitorProfile(
-                "John Doe",
-                "john@example.com",
+                "Android Developer",
+                "android.dev@example.com",
                 "+14155552671"
         );
 
@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
 
         LiveConnectChat.init(
                 this,
-                "your-widget-key-here",
+                "f867612e-e3b0-4f6e-9215-df6b53a2c4ad",
                 visitor,
                 theme,
                 new InitCallback() {
