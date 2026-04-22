@@ -16,12 +16,12 @@ Real-time customer support chat for Android — a ready-to-use `Activity`, float
 
 ## Requirements
 
-| | Minimum |
-|---|---|
-| Android `minSdk` | 21 (Lollipop) |
-| Android `compileSdk` | 34 |
-| JDK | 17 |
-| Android Gradle Plugin | 8.2.2 |
+|                       | Minimum       |
+| --------------------- | ------------- |
+| Android `minSdk`      | 21 (Lollipop) |
+| Android `compileSdk`  | 34            |
+| JDK                   | 17            |
+| Android Gradle Plugin | 8.2.2         |
 
 ---
 
@@ -45,7 +45,7 @@ In your **app-module** `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.craftindikabiz:live-connect-java-chat-widget:v1.0.4")
+    implementation("com.github.craftindikabiz:live-connect-java-chat-widget:v1.0.5")
 }
 ```
 
@@ -64,7 +64,7 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-    implementation("com.github.craftindikabiz:live-connect-java-chat-widget:v1.0.4")
+    implementation("com.github.craftindikabiz:live-connect-java-chat-widget:v1.0.5")
 }
 ```
 
@@ -194,25 +194,25 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
 ### `LiveConnectChat` — top-level static API
 
-| Method | Purpose |
-|---|---|
-| `init(context, widgetKey)` | Minimal init — anonymous visitor |
-| `init(context, widgetKey, visitorDetails)` | Init with known visitor |
-| `init(context, widgetKey, visitorDetails, theme, callback)` | Full init with theme + completion callback |
-| `show(context)` | Open the chat `Activity` |
-| `setTheme(theme)` | Override the theme at runtime |
-| `setFcmToken(token)` | Register the FCM device token |
-| `setFirebaseServiceAccount(map)` | Register the Firebase service account for admin push |
-| `isInitialized` | Has `init()` been called? |
-| `hasCompleteProfile` | Is the visitor profile complete? |
+| Method                                                      | Purpose                                              |
+| ----------------------------------------------------------- | ---------------------------------------------------- |
+| `init(context, widgetKey)`                                  | Minimal init — anonymous visitor                     |
+| `init(context, widgetKey, visitorDetails)`                  | Init with known visitor                              |
+| `init(context, widgetKey, visitorDetails, theme, callback)` | Full init with theme + completion callback           |
+| `show(context)`                                             | Open the chat `Activity`                             |
+| `setTheme(theme)`                                           | Override the theme at runtime                        |
+| `setFcmToken(token)`                                        | Register the FCM device token                        |
+| `setFirebaseServiceAccount(map)`                            | Register the Firebase service account for admin push |
+| `isInitialized`                                             | Has `init()` been called?                            |
+| `hasCompleteProfile`                                        | Is the visitor profile complete?                     |
 
 ### `VisitorProfile`
 
-| Field | Required | Description |
-|---|---|---|
-| `name` | yes | Full name |
-| `email` | yes | Email address |
-| `phone` | no | Phone number (E.164 recommended) |
+| Field   | Required | Description                      |
+| ------- | -------- | -------------------------------- |
+| `name`  | yes      | Full name                        |
+| `email` | yes      | Email address                    |
+| `phone` | no       | Phone number (E.164 recommended) |
 
 ### `LiveConnectTheme`
 
@@ -240,7 +240,7 @@ Order of operations matters: call `setFirebaseServiceAccount(...)` **before** `s
 
 **Stale JitPack build**
 JitPack caches per commit SHA. If a tag was moved and you still see old behaviour, open
-`https://jitpack.io/#craftindikabiz/live-connect-java-chat-widget/v1.0.4` in a browser and click **Get it** to force a rebuild.
+`https://jitpack.io/#craftindikabiz/live-connect-java-chat-widget/v1.0.5` in a browser and click **Get it** to force a rebuild.
 
 ---
 

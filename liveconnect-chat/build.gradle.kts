@@ -114,7 +114,7 @@ publishing {
             // Version resolution order:
             //  1. -PVERSION_NAME=<tag>   (what JitPack passes on real builds)
             //  2. $VERSION_NAME env var  (alternative JitPack convention)
-            //  3. "v1.0.3" fallback      (local publishToMavenLocal testing)
+            //  3. "v1.0.5" fallback      (local publishToMavenLocal testing)
             groupId = "com.github.craftindikabiz"
             artifactId = "live-connect-java-chat-widget"
             version = (project.findProperty("VERSION_NAME") as String?)
