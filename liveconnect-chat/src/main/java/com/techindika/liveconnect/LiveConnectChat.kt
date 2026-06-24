@@ -199,6 +199,16 @@ object LiveConnectChat {
         _initialized = true
         Log.d(TAG, "SDK initialized for widget: $widgetKey")
 
+        // If the consumer app called setFcmToken() before init finished (a common
+        // race — the cached FCM token often returns faster than the widget-config
+        // network round-trip), registration was skipped because _initialized was
+        // still false. Re-attempt it now that we're initialized and the profile is
+        // known. Mirrors Flutter, which registers as soon as the profile is set.
+        val pendingToken = _fcmToken
+        if (pendingToken != null && hasCompleteProfile) {
+            registerFcmToken(pendingToken)
+        }
+
         ApiResult.success(Unit)
     }
 
@@ -358,15 +368,23 @@ object LiveConnectChat {
     private suspend fun registerFcmToken(token: String) {
         try {
             val profile = _visitorProfile ?: return
+            // On mobile the backend keys tokens by the app package name as the
+            // "domain" (mirrors Flutter, which sends PackageInfo.packageName).
+            // Both fields are REQUIRED by the backend — without them it returns 400.
+            val domain = _appContext?.packageName ?: run {
+                Log.w(TAG, "Cannot register FCM token: no app context for package name")
+                return
+            }
             val body = JSONObject().apply {
                 put("widgetKey", _widgetKey)
                 put("email", profile.email)
-                put("fcmToken", token)
+                put("token", token)
+                put("domain", domain)
             }
             val requestBody = body.toString()
                 .toRequestBody("application/json".toMediaType())
             RetrofitClient.apiService.registerFcmToken(requestBody)
-            Log.d(TAG, "FCM token registered")
+            Log.d(TAG, "FCM token registered (domain=$domain)")
         } catch (e: Exception) {
             Log.w(TAG, "Failed to register FCM token: ${e.message}")
         }
