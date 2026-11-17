@@ -15,6 +15,7 @@ import com.techindika.liveconnect.R
 import com.techindika.liveconnect.model.WidgetTicket
 import com.techindika.liveconnect.model.WidgetTicketsResult
 import com.techindika.liveconnect.network.RetrofitClient
+import com.techindika.liveconnect.service.VisitorProfileStore
 import com.techindika.liveconnect.ui.adapter.TicketAdapter
 import kotlinx.coroutines.*
 import org.json.JSONObject
@@ -85,10 +86,14 @@ class ActivityTabFragment : Fragment() {
 
         scope.launch(Dispatchers.IO) {
             try {
+                val authToken = LiveConnectChat.appContext?.let {
+                    VisitorProfileStore.loadToken(it, widgetKey)
+                }
                 val response = RetrofitClient.apiService.fetchTickets(
                     widgetKey = widgetKey,
                     email = profile.email,
-                    phone = profile.phone
+                    phone = profile.phone,
+                    authorization = authToken?.let { "Bearer $it" }
                 )
                 val json = JSONObject(response.string())
                 val data = json.optJSONObject("data")

@@ -53,4 +53,19 @@ internal object VisitorProfileStore {
     fun loadVisitorId(context: Context, widgetKey: String): String? {
         return prefs(context).getString("liveconnect_visitor_id_$widgetKey", null)
     }
+
+    /**
+     * Save the signed visitor token. The backend issues this on visitor upsert and
+     * on socket connect; it is presented as `Authorization: Bearer <token>` on
+     * history/message/FCM calls and in the socket handshake so the server no longer
+     * trusts a bare email for those operations.
+     */
+    fun saveToken(context: Context, widgetKey: String, token: String) {
+        prefs(context).edit().putString("liveconnect_visitor_token_$widgetKey", token).apply()
+    }
+
+    /** Load the signed visitor token, or null if none has been issued yet. */
+    fun loadToken(context: Context, widgetKey: String): String? {
+        return prefs(context).getString("liveconnect_visitor_token_$widgetKey", null)
+    }
 }

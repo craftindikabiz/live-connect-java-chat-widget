@@ -220,10 +220,14 @@ class ChatTabFragment : Fragment() {
                 val storedTicketId = TicketStorage.loadActiveTicketId(context, widgetKey, visitorId)
 
                 // Fetch tickets from API
+                val authToken = LiveConnectChat.appContext?.let {
+                    VisitorProfileStore.loadToken(it, widgetKey)
+                }
                 val response = RetrofitClient.apiService.fetchTickets(
                     widgetKey = widgetKey,
                     email = profile.email,
-                    phone = profile.phone
+                    phone = profile.phone,
+                    authorization = authToken?.let { "Bearer $it" }
                 )
                 val json = JSONObject(response.string())
                 val data = json.optJSONObject("data")
@@ -311,10 +315,14 @@ class ChatTabFragment : Fragment() {
 
         scope.launch(Dispatchers.IO) {
             try {
+                val authToken = LiveConnectChat.appContext?.let {
+                    VisitorProfileStore.loadToken(it, widgetKey)
+                }
                 val response = RetrofitClient.apiService.fetchMessages(
                     widgetKey = widgetKey,
                     ticketId = ticketId,
-                    email = profile.email
+                    email = profile.email,
+                    authorization = authToken?.let { "Bearer $it" }
                 )
                 val json = JSONObject(response.string())
                 val data = json.optJSONObject("data")

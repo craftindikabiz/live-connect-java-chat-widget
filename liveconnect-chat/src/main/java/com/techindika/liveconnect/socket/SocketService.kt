@@ -43,7 +43,8 @@ internal class SocketService private constructor() {
         phone: String,
         firstMessage: String,
         ticketId: String? = null,
-        domain: String? = null
+        domain: String? = null,
+        token: String? = null
     ) {
         if (isConnecting || isConnected) {
             Log.d(TAG, "Already connected or connecting, skipping")
@@ -63,6 +64,8 @@ internal class SocketService private constructor() {
             )
             ticketId?.let { auth["ticketId"] = it }
             domain?.let { auth["domain"] = it }
+            // Authenticated reconnect: the server prefers this over the email.
+            token?.takeIf { it.isNotEmpty() }?.let { auth["token"] = it }
 
             val options = IO.Options.builder()
                 .setAuth(auth)

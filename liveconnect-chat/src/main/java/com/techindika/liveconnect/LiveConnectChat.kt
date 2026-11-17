@@ -324,6 +324,14 @@ object LiveConnectChat {
                     VisitorProfileStore.saveVisitorId(ctx, _widgetKey!!, visitorId)
                 }
             }
+            // Persist the signed visitor token; it authenticates subsequent
+            // history/message/FCM calls and the socket handshake.
+            val token = data?.optString("token", "")
+            if (!token.isNullOrEmpty()) {
+                _appContext?.let { ctx ->
+                    VisitorProfileStore.saveToken(ctx, _widgetKey!!, token)
+                }
+            }
             Log.d(TAG, "Visitor registered: ${profile.email}")
         } catch (e: Exception) {
             Log.w(TAG, "Failed to register visitor: ${e.message}")
@@ -383,7 +391,13 @@ object LiveConnectChat {
             }
             val requestBody = body.toString()
                 .toRequestBody("application/json".toMediaType())
-            RetrofitClient.apiService.registerFcmToken(requestBody)
+            // The backend now identifies the visitor from the signed token, not the
+            // email in the body. Without a valid Bearer token this returns 401.
+            val authToken = _appContext?.let { VisitorProfileStore.loadToken(it, _widgetKey!!) }
+            RetrofitClient.apiService.registerFcmToken(
+                requestBody,
+                authToken?.let { "Bearer $it" }
+            )
             Log.d(TAG, "FCM token registered (domain=$domain)")
         } catch (e: Exception) {
             Log.w(TAG, "Failed to register FCM token: ${e.message}")

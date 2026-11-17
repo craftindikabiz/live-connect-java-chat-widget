@@ -3,7 +3,9 @@ package com.techindika.liveconnect.socket
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.techindika.liveconnect.LiveConnectChat
 import com.techindika.liveconnect.model.*
+import com.techindika.liveconnect.service.VisitorProfileStore
 import com.techindika.liveconnect.util.optStringOrNull
 import org.json.JSONObject
 import java.util.Date
@@ -143,6 +145,7 @@ internal class SocketEventManager(private val socketService: SocketService) {
 
     private fun handleTicketCreated(args: Array<Any>) {
         val json = parseJson(args) ?: return
+        persistVisitorToken(json)
         val ticketJson = json.optJSONObject("ticket")
         val agentJson = json.optJSONObject("agent")
         val ticketId = ticketJson?.optString("_id", "") ?: ""
@@ -152,11 +155,21 @@ internal class SocketEventManager(private val socketService: SocketService) {
 
     private fun handleTicketResumed(args: Array<Any>) {
         val json = parseJson(args) ?: return
+        persistVisitorToken(json)
         val ticketJson = json.optJSONObject("ticket")
         val agentJson = json.optJSONObject("agent")
         val ticketId = ticketJson?.optString("_id", "") ?: ""
         val agent = agentJson?.let { AgentInfo.fromJson(it) }
         dispatch { onTicketResumed?.invoke(TicketResumedEvent(ticketId, agent)) }
+    }
+
+    /** Persist the signed visitor token delivered on a ticket:created / ticket:resumed payload. */
+    private fun persistVisitorToken(json: JSONObject) {
+        val token = json.optString("token", "")
+        if (token.isEmpty()) return
+        val ctx = LiveConnectChat.appContext ?: return
+        val widgetKey = LiveConnectChat.widgetKey ?: return
+        VisitorProfileStore.saveToken(ctx, widgetKey, token)
     }
 
     private fun handleTicketResolved(args: Array<Any>) {

@@ -6,6 +6,7 @@ import com.techindika.liveconnect.model.MessageStatus
 import com.techindika.liveconnect.service.ConversationManager
 import com.techindika.liveconnect.service.TicketStorage
 import com.techindika.liveconnect.service.UnreadCountService
+import com.techindika.liveconnect.service.VisitorProfileStore
 import com.techindika.liveconnect.socket.SocketEventManager
 import com.techindika.liveconnect.socket.SocketService
 import org.json.JSONObject
@@ -74,7 +75,8 @@ internal class ChatTabSocketHandler(
             // on the ticket and uses it (a) to find the visitor's FCM token and
             // (b) to resolve the per-widget Firebase creds when pushing. Without it
             // ticket.domain is null and pushes are silently skipped. Mirrors Flutter.
-            domain = LiveConnectChat.appContext?.packageName
+            domain = LiveConnectChat.appContext?.packageName,
+            token = LiveConnectChat.appContext?.let { VisitorProfileStore.loadToken(it, widgetKey) }
         )
 
         socketService.onConnect = {
@@ -100,7 +102,8 @@ internal class ChatTabSocketHandler(
             firstMessage = text,
             // Send the package name as the ticket "domain" so the backend can push
             // notifications to this visitor later (see connectToResume). Mirrors Flutter.
-            domain = LiveConnectChat.appContext?.packageName
+            domain = LiveConnectChat.appContext?.packageName,
+            token = LiveConnectChat.appContext?.let { VisitorProfileStore.loadToken(it, widgetKey) }
         )
 
         socketService.onConnect = {
